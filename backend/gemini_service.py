@@ -1,4 +1,3 @@
-"""Gemini AI service module for mental health chatbot responses."""
 import logging
 import google.generativeai as genai
 from config import Config
@@ -8,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class GeminiService:
-    """Service for interacting with Google Gemini API."""
     
     def __init__(self):
         self.api_key = Config.GEMINI_API_KEY
@@ -16,7 +14,6 @@ class GeminiService:
         self._configure()
     
     def _configure(self):
-        """Configure Gemini API client."""
         if not self.api_key:
             logger.warning(
                 "GEMINI_API_KEY is not set. AI responses will return a configuration error."
@@ -29,14 +26,7 @@ class GeminiService:
                 logger.error("Failed to configure Gemini: %s", e)
     
     def generate_mental_health_response(self, user_input: str) -> dict:
-        """Generate a supportive, mental-health-focused response using Gemini.
-        
-        Args:
-            user_input: User's message/question
-            
-        Returns:
-            Dictionary with intent, response, and confidence
-        """
+       
         if not self.api_key:
             return {
                 "intent": "configuration_error",

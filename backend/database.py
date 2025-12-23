@@ -18,7 +18,6 @@ class Database:
         self._init_collections()
     
     def _connect(self):
-        """Establish connection to MongoDB."""
         try:
             self.client = MongoClient(Config.MONGO_URL)
             self.db = self.client[Config.MONGODB_DB_NAME]
@@ -30,7 +29,7 @@ class Database:
             raise
     
     def _init_collections(self):
-        """Initialize MongoDB collections with required indexes."""
+    
         try:
             # Users collection
             users_collection = self.db.users
@@ -55,7 +54,6 @@ class Database:
             raise
     
     def get_collection(self, collection_name):
-        """Get a collection from the database."""
         return self.db[collection_name]
 
 
