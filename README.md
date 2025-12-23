@@ -2,178 +2,97 @@
 
 ## Project Overview
 
-This repository contains a Flask-based REST API that serves as a backend for a mental health chatbot. The chatbot uses a TensorFlow neural network model trained on various mental health-related intents to provide appropriate responses to user messages.
+This repository contains a Flask-based REST API and a React frontend for a mental health chatbot.  
+The chatbot now uses **Google Gemini** to generate empathetic, safe mental-health–focused responses.
 
 ## Technical Architecture
 
 ### Core Components
 
-1. **TensorFlow Neural Network Model**
-   - Architecture: Feedforward neural network with 2 hidden layers
-   - Input Layer: Matches the TF-IDF vector size (500 features)
-   - Hidden Layers: 64 units (with 30% dropout) → 32 units (with 20% dropout)
-   - Output Layer: Softmax activation matching the number of intent categories (82)
-   - Optimizer: Adam optimizer with learning rate of 0.0005
-   - Loss Function: Categorical cross-entropy
-   - Training: Early stopping with patience of 10 epochs, reducing learning rate on plateau
+1. **Gemini Mental Health Assistant**
+   - Provider: Google Gemini (via `google-generativeai`)
+   - Behavior: Empathetic, non-judgmental support for mental and emotional wellbeing
+   - Safety: Never provides medical diagnoses; encourages contacting professionals or emergency services in crisis situations
 
-2. **Text Processing Pipeline**
-   - Vectorization: TF-IDF (Term Frequency-Inverse Document Frequency)
-   - Features: 500 max features, unigrams and bigrams (1-2 word combinations)
-   - Text Normalization: Sublinear TF scaling
+2. **Backend API**
+   - Framework: Flask
+   - Auth: JWT-based authentication with bcrypt-hashed passwords
+   - Database: SQLite for users, chat sessions, and message history
+   - Key endpoints:
+     - `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/verify`
+     - `POST /predict` – authenticated chat endpoint (used by main chat UI)
+     - `POST /predict-public` – public test endpoint (no auth)
+     - `GET/POST /chat/sessions`, `GET /chat/sessions/:id/messages`, `DELETE /chat/sessions/:id`
 
-3. **Backend API**
-   - Framework: Flask with RESTful endpoint design
-   - CORS: Enabled for cross-origin requests
-   - Endpoint: `/predict` for intent classification and response generation
+3. **Frontend**
+   - Framework: React (Create React App)
+   - Routing: React Router
+   - Styling: Tailwind CSS
+   - Features: Login/Signup, chat layout with session list, persistent history
 
-### Data Files
+> Note: The old TensorFlow / TF‑IDF model and data files have been removed in favor of Gemini.
 
-- `chatbot_model.h5`: TensorFlow model in HDF5 format
-- `vectorizer.pkl`: Serialized TF-IDF vectorizer
-- `label_encoder.pkl`: Serialized label encoder for intent mapping
-- `intents.json`: JSON file containing intent patterns and responses
-- `chatbot_model.pkl`: Backup pickled version of the model (for compatibility)
-
-### Intent Structure
-
-The model is trained on a diverse set of intents (82 categories) with the following distribution:
-- Conversation starters (greeting, goodbye, thanks)
-- Emotional states (sad, stressed, happy, anxious, etc.)
-- Mental health facts
-- Help requests and support responses
-- Time-specific greetings (morning, afternoon, evening)
-
-Each intent follows this JSON structure:
-```json
-{
-  "tag": "intent_name",
-  "patterns": ["Example user input 1", "Example user input 2"],
-  "responses": ["Possible bot response 1", "Possible bot response 2"]
-}
-```
-
-## Model Performance
-
-- **Training Data**: 248+ patterns across 82 intent categories (augmented for categories with limited examples)
-- **Vocabulary Size**: 267 features after TF-IDF processing
-- **Accuracy**: Approximately 95-98% on the validation set
-- **Response Generation**: Random selection from predefined responses for the predicted intent
-
-## API Endpoints
+## API Endpoints (Backend)
 
 ### GET /
-- **Description**: Home endpoint to verify API is running
-- **Response**: `{"message": "Welcome to the TensorFlow Chatbot API!"}`
+- **Description**: Health check to verify the API is running
+- **Response**: `{"message": "Welcome to the SeraNova AI (Gemini) Chatbot API!"}`
 
 ### POST /predict
-- **Description**: Processes user message and returns appropriate response
+- **Description**: Authenticated mental health chat endpoint
 - **Request Body**:
   ```json
   {
-    "message": "User message here"
+    "message": "User message here",
+    "session_id": 1
   }
   ```
-- **Response**:
+- **Response** (Gemini-backed):
   ```json
   {
-    "intent": "detected_intent",
-    "response": "Bot response based on intent",
-    "confidence": 0.95
+    "intent": "mental_health_support",
+    "response": "Gemini-generated supportive reply",
+    "confidence": 0.9
   }
   ```
 
-## Model Training Process
+### POST /predict-public
+- **Description**: Same as `/predict` but without auth and without saving to history; useful for quick testing.
 
-The model was trained using the following approach:
-
-1. **Data Preparation**:
-   - Collection of user message patterns for each intent
-   - Organization into tag-based categories
-   - Data augmentation for categories with limited examples
-
-2. **Text Vectorization**:
-   - Conversion of text patterns to numerical features using TF-IDF
-   - Feature engineering with unigram and bigram extraction
-
-3. **Model Training**:
-   - Batch size of 8 for better generalization with limited data
-   - Learning rate of 0.0005 with reduction on plateau
-   - Early stopping to prevent overfitting
-   - 90-10 train-test split
-
-4. **Optimization**:
-   - Dropout layers to prevent overfitting (30% and 20%)
-   - Regularization through early stopping
-   - Adaptive learning rate adjustment
+### Auth & Sessions
+- `POST /auth/signup` – create account, returns JWT + user info
+- `POST /auth/login` – login, returns JWT + user info
+- `POST /auth/logout` – logical logout (client deletes JWT)
+- `GET /auth/verify` – validate current JWT and return user data
+- `GET /chat/sessions` – list user’s chat sessions
+- `POST /chat/sessions` – create new session
+- `GET /chat/sessions/:id/messages` – get messages for a session
+- `DELETE /chat/sessions/:id` – delete a session and its messages
 
 ## Installation and Deployment
 
-### Prerequisites
-- Python 3.7+
-- TensorFlow 2.x
-- Flask
-- scikit-learn
-- NLTK
+See `SETUP.md` for full, up-to-date instructions. In short:
 
-### Setup
+1. **Backend**
+   - Create a virtualenv in `backend/`
+   - Install deps: `pip install -r backend/requirements.txt`
+   - Create `backend/.env` with `FLASK_SECRET_KEY`, `JWT_SECRET_KEY`, `GEMINI_API_KEY` and other values from `ENV_VARIABLES_GUIDE.md`
+   - Run: `python backend/server.py`
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/your-username/mental-health-chatbot.git
-   cd mental-health-chatbot
-   ```
+2. **Frontend**
+   - In `frontend_1/`: `npm install` then `npm start`
 
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+The app will be available at `http://localhost:3000` (frontend) talking to `http://127.0.0.1:5000` (backend) by default.
 
-3. Ensure all model files are in the `./data/` directory:
-   - `chatbot_model.h5`
-   - `vectorizer.pkl`
-   - `label_encoder.pkl`
-   - `intents.json`
+## Limitations and Considerations
 
-4. Start the Flask server:
-   ```
-   python app.py
-   ```
-
-The server will be available at `http://localhost:5000`.
-
-### Production Deployment Recommendations
-
-For production deployment:
-
-1. Use a production WSGI server like Gunicorn or uWSGI
-2. Set `debug=False` in the Flask application
-3. Implement proper error handling and logging
-4. Add authentication for API endpoints
-5. Consider containerizing the application with Docker
-6. Set up HTTPS for secure communication
-
-## Model Limitations and Considerations
-
-1. **Limited Training Data**: The model performs best with patterns similar to its training data. Unusual phrasings may result in lower confidence predictions.
-
-2. **Fixed Response Set**: The chatbot selects from predefined responses rather than generating new ones.
-
-3. **No Conversation Memory**: The current implementation doesn't maintain conversation context between requests.
-
-4. **Mental Health Context**: This chatbot is designed to provide supportive responses but is not a replacement for professional mental health services.
-
-5. **Security Considerations**: The pickle files should be handled securely as they can potentially execute arbitrary code if tampered with.
+1. **Not a medical device**: SereNova is for emotional support, not diagnosis or treatment.
+2. **Safety**: For crisis or self-harm content, Gemini is prompted to encourage contacting local emergency services or professionals.
+3. **Data storage**: Chat messages and sessions are stored in a local SQLite database; secure and back up as needed.
 
 ## Future Improvements
 
-1. **Enhanced Model Architecture**: Implement transformer-based models (BERT, RoBERTa) for better understanding of user intents
-
-2. **Conversation Memory**: Add session management to maintain context across multiple messages
-
-3. **Dynamic Response Generation**: Implement more sophisticated response generation rather than template-based responses
-
-4. **Personalization**: Adapt responses based on user history and preferences
-
-5. **Multi-language Support**: Expand the model to handle multiple languages
+1. Richer conversation memory and personalization per user
+2. Multi-language support via Gemini’s multilingual capabilities
+3. Better analytics and safety monitoring around high‑risk conversations
 
