@@ -14,8 +14,9 @@ FLASK_ENV=development
 FLASK_DEBUG=True
 FLASK_SECRET_KEY=your-super-secret-key-change-in-production
 
-# Database
-DATABASE_PATH=./data/serenova.db
+# MongoDB
+MONGO_URL=mongodb://localhost:27017/
+MONGODB_DB_NAME=serenova_ai
 
 # Gemini
 GEMINI_API_KEY=your-gemini-api-key
@@ -43,7 +44,8 @@ LOG_LEVEL=INFO
 | `FLASK_ENV`         | Flask environment (`development` / `production`)       | -                    | No       |
 | `FLASK_DEBUG`       | Enable Flask debug mode                                | `True`               | No       |
 | `FLASK_SECRET_KEY`  | Secret key for Flask sessions                          | -                    | **Yes**  |
-| `DATABASE_PATH`     | Path to SQLite database                                | `./data/serenova.db` | No       |
+| `MONGO_URL`         | MongoDB connection string                               | `mongodb://localhost:27017/` | **Yes** |
+| `MONGODB_DB_NAME`   | MongoDB database name                                   | `serenova_ai`        | No       |
 | `GEMINI_API_KEY`    | Google Gemini API key                                  | -                    | **Yes**  |
 | `GEMINI_MODEL_NAME` | Gemini model name (e.g. `gemini-1.5-pro`)              | `gemini-1.5-pro`     | No       |
 | `JWT_SECRET_KEY`    | Secret key for JWT signing                             | Flask secret         | **Yes**  |
@@ -102,8 +104,9 @@ FLASK_ENV=development
 FLASK_DEBUG=True
 FLASK_SECRET_KEY=your-super-secret-key-change-in-production
 
-# Database Configuration
-DATABASE_PATH=./data/serenova.db
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/
+MONGODB_DB_NAME=serenova_ai
 
 # Gemini Configuration
 GEMINI_API_KEY=your-gemini-api-key
@@ -169,7 +172,8 @@ REACT_APP_ENABLE_ANALYTICS=false
 | `FLASK_ENV` | Flask environment (development/production) | - | No |
 | `FLASK_DEBUG` | Enable/disable Flask debug mode | True | No |
 | `FLASK_SECRET_KEY` | Secret key for Flask sessions and cookies | - | **Yes** |
-| `DATABASE_PATH` | Path to SQLite database file | ./data/serenova.db | No |
+| `MONGODB_URI` | MongoDB connection string | mongodb://localhost:27017/ | **Yes** |
+| `MONGODB_DB_NAME` | MongoDB database name | serenova_ai | No |
 | `GEMINI_API_KEY` | Google Gemini API key used by the chatbot | - | **Yes** |
 | `GEMINI_MODEL_NAME` | Gemini model name (e.g. `gemini-1.5-pro`) | gemini-1.5-pro | No |
 | `JWT_SECRET_KEY` | Secret key for JWT token signing | Flask secret key | **Yes** |

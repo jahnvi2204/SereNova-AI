@@ -1,7 +1,8 @@
 import os
 import logging
-import sqlite3
 from datetime import datetime, timedelta
+from bson import ObjectId
+from typing import Optional
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -11,6 +12,8 @@ import bcrypt
 import jwt
 from dotenv import load_dotenv
 import google.generativeai as genai
+from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError, ConnectionFailure
 
 
 # Load environment variables from .env
@@ -32,7 +35,8 @@ CORS(app, origins=allowed_origins, supports_credentials=True)
 # Configuration
 # -----------------------------------------------------------------------------
 
-DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/serenova.db")
+MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "serenova_ai")
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", app.secret_key)
 JWT_EXPIRATION_DAYS = int(os.getenv("JWT_EXPIRATION_DAYS", "30"))
@@ -45,65 +49,70 @@ logging.basicConfig(level=log_level)
 
 
 # -----------------------------------------------------------------------------
-# Database
+# MongoDB Connection
+# -----------------------------------------------------------------------------
+
+try:
+    client = MongoClient(MONGO_URL)
+    db = client[MONGODB_DB_NAME]
+    # Test connection
+    client.admin.command('ping')
+    logging.info("Connected to MongoDB successfully")
+except ConnectionFailure as e:
+    logging.error("Failed to connect to MongoDB: %s", e)
+    raise
+
+
+# -----------------------------------------------------------------------------
+# Database Collections & Indexes
 # -----------------------------------------------------------------------------
 
 def init_database():
-    """Initialize SQLite database with required tables."""
-    os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
+    """Initialize MongoDB collections with required indexes."""
+    try:
+        # Users collection
+        users_collection = db.users
+        users_collection.create_index("email", unique=True)
+        logging.info("Users collection initialized with email index")
 
-    # Users
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            full_name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash BLOB NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login TIMESTAMP
-        )
-        """
-    )
+        # Chat sessions collection
+        sessions_collection = db.chat_sessions
+        sessions_collection.create_index("user_id")
+        sessions_collection.create_index([("user_id", 1), ("last_updated", -1)])
+        logging.info("Chat sessions collection initialized")
 
-    # Chat sessions
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chat_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            title TEXT DEFAULT 'New Chat',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-        """
-    )
+        # Messages collection
+        messages_collection = db.messages
+        messages_collection.create_index("session_id")
+        messages_collection.create_index([("session_id", 1), ("created_at", 1)])
+        logging.info("Messages collection initialized")
 
-    # Messages
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER,
-            message_text TEXT NOT NULL,
-            is_user BOOLEAN NOT NULL,
-            intent TEXT,
-            confidence REAL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES chat_sessions (id)
-        )
-        """
-    )
-
-    conn.commit()
-    conn.close()
-    logging.info("Database initialized at %s", DATABASE_PATH)
+        logging.info("Database initialized successfully")
+    except Exception as e:
+        logging.error("Error initializing database: %s", e)
+        raise
 
 
 init_database()
+
+
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+
+def object_id_to_str(obj_id):
+    """Convert ObjectId to string for JSON serialization."""
+    if isinstance(obj_id, ObjectId):
+        return str(obj_id)
+    return obj_id
+
+
+def str_to_object_id(id_str):
+    """Convert string to ObjectId if valid, otherwise return None."""
+    try:
+        return ObjectId(id_str)
+    except Exception:
+        return None
 
 
 # -----------------------------------------------------------------------------
@@ -191,7 +200,7 @@ def verify_password(password: str, hashed: bytes) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), hashed)
 
 
-def generate_token(user_id: int) -> str:
+def generate_token(user_id: str) -> str:
     payload = {
         "user_id": user_id,
         "exp": datetime.utcnow() + timedelta(days=JWT_EXPIRATION_DAYS),
@@ -199,7 +208,7 @@ def generate_token(user_id: int) -> str:
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm="HS256")
 
 
-def verify_token(token: str):
+def verify_token(token: str) -> Optional[str]:
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
         return payload.get("user_id")
@@ -245,19 +254,16 @@ def signup():
 
         password_hash = hash_password(password)
 
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
-
         try:
-            cursor.execute(
-                """
-                INSERT INTO users (full_name, email, password_hash)
-                VALUES (?, ?, ?)
-                """,
-                (full_name, email, password_hash),
-            )
-            user_id = cursor.lastrowid
-            conn.commit()
+            user_doc = {
+                "full_name": full_name,
+                "email": email,
+                "password_hash": password_hash,
+                "created_at": datetime.utcnow(),
+                "last_login": None,
+            }
+            result = db.users.insert_one(user_doc)
+            user_id = str(result.inserted_id)
 
             token = generate_token(user_id)
 
@@ -275,10 +281,8 @@ def signup():
                 ),
                 201,
             )
-        except sqlite3.IntegrityError:
+        except DuplicateKeyError:
             return jsonify({"error": "Email already exists"}), 409
-        finally:
-            conn.close()
     except Exception as e:
         logging.error("Signup error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
@@ -294,31 +298,18 @@ def login():
         if not all([email, password]):
             return jsonify({"error": "Email and password are required"}), 400
 
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        user = db.users.find_one({"email": email})
 
-        cursor.execute(
-            """
-            SELECT id, full_name, email, password_hash
-            FROM users
-            WHERE email = ?
-            """,
-            (email,),
-        )
-        user = cursor.fetchone()
+        if user and verify_password(password, user["password_hash"]):
+            user_id = str(user["_id"])
+            full_name = user["full_name"]
+            user_email = user["email"]
 
-        if user and verify_password(password, user[3]):
-            user_id, full_name, user_email, _ = user
-
-            cursor.execute(
-                """
-                UPDATE users
-                SET last_login = CURRENT_TIMESTAMP
-                WHERE id = ?
-                """,
-                (user_id,),
+            # Update last login
+            db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"last_login": datetime.utcnow()}},
             )
-            conn.commit()
 
             token = generate_token(user_id)
 
@@ -341,8 +332,6 @@ def login():
     except Exception as e:
         logging.error("Login error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
-    finally:
-        conn.close()
 
 
 @app.route("/auth/logout", methods=["POST"])
@@ -356,18 +345,11 @@ def logout():
 @auth_required
 def verify_token_route():
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        user_id_obj = str_to_object_id(request.user_id)
+        if not user_id_obj:
+            return jsonify({"valid": False}), 401
 
-        cursor.execute(
-            """
-            SELECT id, full_name, email
-            FROM users
-            WHERE id = ?
-            """,
-            (request.user_id,),
-        )
-        user = cursor.fetchone()
+        user = db.users.find_one({"_id": user_id_obj})
 
         if not user:
             return jsonify({"valid": False}), 401
@@ -377,9 +359,9 @@ def verify_token_route():
                 {
                     "valid": True,
                     "user": {
-                        "id": user[0],
-                        "full_name": user[1],
-                        "email": user[2],
+                        "id": str(user["_id"]),
+                        "full_name": user["full_name"],
+                        "email": user["email"],
                     },
                 }
             ),
@@ -388,8 +370,6 @@ def verify_token_route():
     except Exception as e:
         logging.error("Token verification error: %s", e)
         return jsonify({"valid": False}), 401
-    finally:
-        conn.close()
 
 
 # -----------------------------------------------------------------------------
@@ -423,39 +403,35 @@ def predict():
         confidence = result["confidence"]
 
         if session_id:
-            conn = sqlite3.connect(DATABASE_PATH)
-            cursor = conn.cursor()
+            session_id_obj = str_to_object_id(session_id)
+            if session_id_obj:
+                # Save user message
+                db.messages.insert_one(
+                    {
+                        "session_id": session_id_obj,
+                        "message_text": user_input,
+                        "is_user": True,
+                        "created_at": datetime.utcnow(),
+                    }
+                )
 
-            # Save user message
-            cursor.execute(
-                """
-                INSERT INTO messages (session_id, message_text, is_user, created_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                """,
-                (session_id, user_input, True),
-            )
+                # Save bot response
+                db.messages.insert_one(
+                    {
+                        "session_id": session_id_obj,
+                        "message_text": response_text,
+                        "is_user": False,
+                        "intent": intent,
+                        "confidence": confidence,
+                        "created_at": datetime.utcnow(),
+                    }
+                )
 
-            # Save bot response
-            cursor.execute(
-                """
-                INSERT INTO messages (session_id, message_text, is_user, intent, confidence, created_at)
-                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """,
-                (session_id, response_text, False, intent, confidence),
-            )
-
-            # Update session last_updated
-            cursor.execute(
-                """
-                UPDATE chat_sessions
-                SET last_updated = CURRENT_TIMESTAMP
-                WHERE id = ?
-                """,
-                (session_id,),
-            )
-
-            conn.commit()
-            conn.close()
+                # Update session last_updated
+                db.chat_sessions.update_one(
+                    {"_id": session_id_obj},
+                    {"$set": {"last_updated": datetime.utcnow()}},
+                )
 
         return jsonify(result)
     except Exception as e:
@@ -488,28 +464,23 @@ def predict_public():
 @auth_required
 def get_chat_sessions():
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        user_id_obj = str_to_object_id(request.user_id)
+        if not user_id_obj:
+            return jsonify({"error": "Invalid user ID"}), 400
 
-        cursor.execute(
-            """
-            SELECT id, title, created_at, last_updated
-            FROM chat_sessions
-            WHERE user_id = ?
-            ORDER BY last_updated DESC
-            """,
-            (request.user_id,),
+        sessions = list(
+            db.chat_sessions.find({"user_id": user_id_obj})
+            .sort("last_updated", -1)
         )
-        sessions = cursor.fetchall()
 
         return jsonify(
             {
                 "sessions": [
                     {
-                        "id": s[0],
-                        "title": s[1],
-                        "created_at": s[2],
-                        "last_updated": s[3],
+                        "id": str(s["_id"]),
+                        "title": s["title"],
+                        "created_at": s["created_at"].isoformat() if isinstance(s["created_at"], datetime) else s["created_at"],
+                        "last_updated": s["last_updated"].isoformat() if isinstance(s["last_updated"], datetime) else s["last_updated"],
                     }
                     for s in sessions
                 ]
@@ -518,8 +489,6 @@ def get_chat_sessions():
     except Exception as e:
         logging.error("Get sessions error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
-    finally:
-        conn.close()
 
 
 @app.route("/chat/sessions", methods=["POST"])
@@ -529,18 +498,18 @@ def create_chat_session():
         data = request.json or {}
         title = data.get("title", "New Chat")
 
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        user_id_obj = str_to_object_id(request.user_id)
+        if not user_id_obj:
+            return jsonify({"error": "Invalid user ID"}), 400
 
-        cursor.execute(
-            """
-            INSERT INTO chat_sessions (user_id, title)
-            VALUES (?, ?)
-            """,
-            (request.user_id, title),
-        )
-        session_id = cursor.lastrowid
-        conn.commit()
+        session_doc = {
+            "user_id": user_id_obj,
+            "title": title,
+            "created_at": datetime.utcnow(),
+            "last_updated": datetime.utcnow(),
+        }
+        result = db.chat_sessions.insert_one(session_doc)
+        session_id = str(result.inserted_id)
 
         return (
             jsonify(
@@ -555,44 +524,38 @@ def create_chat_session():
     except Exception as e:
         logging.error("Create session error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
-    finally:
-        conn.close()
 
 
-@app.route("/chat/sessions/<int:session_id>/messages", methods=["GET"])
+@app.route("/chat/sessions/<session_id>/messages", methods=["GET"])
 @auth_required
 def get_session_messages(session_id):
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        session_id_obj = str_to_object_id(session_id)
+        if not session_id_obj:
+            return jsonify({"error": "Invalid session ID"}), 400
 
-        cursor.execute(
-            "SELECT user_id FROM chat_sessions WHERE id = ?", (session_id,)
-        )
-        session_row = cursor.fetchone()
-        if not session_row or session_row[0] != request.user_id:
+        user_id_obj = str_to_object_id(request.user_id)
+        if not user_id_obj:
+            return jsonify({"error": "Invalid user ID"}), 400
+
+        # Verify session belongs to user
+        session = db.chat_sessions.find_one({"_id": session_id_obj})
+        if not session or session["user_id"] != user_id_obj:
             return jsonify({"error": "Session not found"}), 404
 
-        cursor.execute(
-            """
-            SELECT message_text, is_user, intent, confidence, created_at
-            FROM messages
-            WHERE session_id = ?
-            ORDER BY created_at ASC
-            """,
-            (session_id,),
+        messages = list(
+            db.messages.find({"session_id": session_id_obj}).sort("created_at", 1)
         )
-        messages = cursor.fetchall()
 
         return jsonify(
             {
                 "messages": [
                     {
-                        "text": m[0],
-                        "isUser": bool(m[1]),
-                        "intent": m[2],
-                        "confidence": m[3],
-                        "created_at": m[4],
+                        "text": m["message_text"],
+                        "isUser": bool(m["is_user"]),
+                        "intent": m.get("intent"),
+                        "confidence": m.get("confidence"),
+                        "created_at": m["created_at"].isoformat() if isinstance(m["created_at"], datetime) else m["created_at"],
                     }
                     for m in messages
                 ]
@@ -601,34 +564,35 @@ def get_session_messages(session_id):
     except Exception as e:
         logging.error("Get messages error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
-    finally:
-        conn.close()
 
 
-@app.route("/chat/sessions/<int:session_id>", methods=["DELETE"])
+@app.route("/chat/sessions/<session_id>", methods=["DELETE"])
 @auth_required
 def delete_chat_session(session_id):
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        session_id_obj = str_to_object_id(session_id)
+        if not session_id_obj:
+            return jsonify({"error": "Invalid session ID"}), 400
 
-        cursor.execute(
-            "SELECT user_id FROM chat_sessions WHERE id = ?", (session_id,)
-        )
-        session_row = cursor.fetchone()
-        if not session_row or session_row[0] != request.user_id:
+        user_id_obj = str_to_object_id(request.user_id)
+        if not user_id_obj:
+            return jsonify({"error": "Invalid user ID"}), 400
+
+        # Verify session belongs to user
+        session = db.chat_sessions.find_one({"_id": session_id_obj})
+        if not session or session["user_id"] != user_id_obj:
             return jsonify({"error": "Session not found"}), 404
 
-        cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
-        cursor.execute("DELETE FROM chat_sessions WHERE id = ?", (session_id,))
-        conn.commit()
+        # Delete messages
+        db.messages.delete_many({"session_id": session_id_obj})
+
+        # Delete session
+        db.chat_sessions.delete_one({"_id": session_id_obj})
 
         return jsonify({"message": "Session deleted successfully"})
     except Exception as e:
         logging.error("Delete session error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
-    finally:
-        conn.close()
 
 
 # -----------------------------------------------------------------------------
@@ -640,5 +604,4 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "True").lower() == "true"
     app.run(host=host, port=port, debug=debug)
-
 
