@@ -45,7 +45,7 @@ app.register_blueprint(chat_bp)
 @app.route("/", methods=["GET"])
 def home():
     """Home endpoint."""
-        return jsonify({
+    return jsonify({
         "message": "Welcome to the SeraNova AI (Gemini) Chatbot API!",
         "status": "running"
     })

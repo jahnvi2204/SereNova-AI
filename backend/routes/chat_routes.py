@@ -168,8 +168,9 @@ def get_messages(session_id):
         messages_list = [
             {
                 "id": object_id_to_str(msg["_id"]),
-                "message": msg["message"],
-                "response": msg["response"],
+                "message": msg.get("message", ""),
+                "response": msg.get("response", ""),
+                "intent": msg.get("intent", ""),
                 "created_at": msg["created_at"].isoformat(),
             }
             for msg in messages
@@ -211,34 +212,98 @@ def add_message(session_id):
         # Generate AI response
         ai_result = gemini_service.generate_mental_health_response(user_message)
         ai_response = ai_result.get("response", "")
+        ai_intent = ai_result.get("intent", "")
+        
+        # Check if this is the first message in the session (for updating title)
+        messages_collection = db.get_collection("messages")
+        existing_messages_count = messages_collection.count_documents({"session_id": session_id})
+        is_first_message = existing_messages_count == 0
         
         # Save message
-        messages_collection = db.get_collection("messages")
         message_doc = {
             "session_id": session_id,
             "message": user_message,
             "response": ai_response,
+            "intent": ai_intent,
             "created_at": datetime.utcnow(),
         }
         
         result = messages_collection.insert_one(message_doc)
         message_id = str(result.inserted_id)
         
-        # Update session last_updated
+        # Update session: if first message, set title to intent; otherwise just update last_updated
+        update_data = {"last_updated": datetime.utcnow()}
+        if is_first_message and ai_intent:
+            # Use intent as title, format it nicely
+            title = ai_intent.replace("_", " ").title()
+            update_data["title"] = title
+        
         sessions_collection.update_one(
             {"_id": obj_session_id},
-            {"$set": {"last_updated": datetime.utcnow()}}
+            {"$set": update_data}
         )
         
         return jsonify({
             "message": "Message added successfully",
             "message_id": message_id,
             "response": ai_response,
+            "intent": ai_intent,
         }), 201
         
     except Exception as e:
         logger.error("Add message error: %s", e)
         return jsonify({"error": "Failed to add message"}), 500
+
+
+@chat_bp.route("/sessions/<session_id>", methods=["PATCH", "PUT"])
+@require_auth
+def update_session(session_id):
+    """Update a chat session (e.g., title)."""
+    try:
+        user_id = request.user_id
+        obj_session_id = str_to_object_id(session_id)
+        
+        if not obj_session_id:
+            return jsonify({"error": "Invalid session ID"}), 400
+        
+        sessions_collection = db.get_collection("chat_sessions")
+        session = sessions_collection.find_one({"_id": obj_session_id})
+        
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
+        
+        if session["user_id"] != user_id:
+            return jsonify({"error": "Unauthorized access to session"}), 403
+        
+        data = request.get_json()
+        update_data = {}
+        
+        if "title" in data:
+            title = data.get("title", "").strip()
+            if title:
+                update_data["title"] = title
+        
+        if update_data:
+            update_data["last_updated"] = datetime.utcnow()
+            sessions_collection.update_one(
+                {"_id": obj_session_id},
+                {"$set": update_data}
+            )
+        
+        updated_session = sessions_collection.find_one({"_id": obj_session_id})
+        
+        return jsonify({
+            "message": "Session updated successfully",
+            "session": {
+                "id": session_id,
+                "title": updated_session.get("title", "Untitled Session"),
+                "last_updated": updated_session["last_updated"].isoformat(),
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error("Update session error: %s", e)
+        return jsonify({"error": "Failed to update session"}), 500
 
 
 @chat_bp.route("/sessions/<session_id>", methods=["DELETE"])
