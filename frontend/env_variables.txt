@@ -1,0 +1,32 @@
+# Frontend Environment Variables (.env)
+# Copy this content to a .env file in the frontend_1 directory
+
+# API Configuration
+REACT_APP_API_BASE_URL=http://localhost:5000
+REACT_APP_API_TIMEOUT=10000
+
+# Authentication Configuration
+REACT_APP_TOKEN_STORAGE_KEY=authToken
+REACT_APP_USER_DATA_STORAGE_KEY=userData
+
+# App Configuration
+REACT_APP_NAME=SeraNova AI
+REACT_APP_VERSION=1.0.0
+REACT_APP_DESCRIPTION=Your Personal Mental Health Companion
+
+# Features Configuration
+REACT_APP_ENABLE_PUBLIC_CHAT=true
+REACT_APP_ENABLE_REGISTRATION=true
+REACT_APP_ENABLE_PASSWORD_RESET=false
+
+# UI Configuration
+REACT_APP_DEFAULT_THEME=dark
+REACT_APP_ENABLE_ANIMATIONS=true
+
+# Development Configuration
+REACT_APP_DEBUG_MODE=true
+REACT_APP_LOG_LEVEL=info
+
+# Analytics (Optional)
+REACT_APP_ANALYTICS_ID=
+REACT_APP_ENABLE_ANALYTICS=false
