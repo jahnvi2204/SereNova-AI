@@ -47,13 +47,16 @@ This guide covers deploying your SeraNova AI application using GitHub Actions.
    - Click "New Project"
    - Select "Deploy from GitHub repo"
    - Choose your repository
-   - Select the `backend` folder
+   - Railway will create a service automatically
 
-3. **Configure Railway**
-   - Root Directory: `backend`
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `python server.py`
-   - Port: Railway auto-assigns, use `$PORT` in your code
+3. **Configure Railway Service**
+   - Go to your service → Settings
+   - **IMPORTANT**: Set **Root Directory** to `backend`
+   - Railway will auto-detect Python from:
+     - `requirements.txt` (dependencies)
+     - `nixpacks.toml` (build configuration)
+     - `Procfile` (start command)
+   - The start command is already configured: `gunicorn server:app`
 
 4. **Set Environment Variables in Railway**
    - Go to your Railway project → Variables
