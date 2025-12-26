@@ -27,7 +27,13 @@ app = Flask(__name__)
 app.secret_key = Config.FLASK_SECRET_KEY
 
 # Configure CORS
-CORS(app, origins=Config.ALLOWED_ORIGINS, supports_credentials=True)
+CORS(
+    app, 
+    origins=Config.ALLOWED_ORIGINS, 
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
 
 
 # -----------------------------------------------------------------------------

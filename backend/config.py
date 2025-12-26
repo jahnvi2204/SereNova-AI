@@ -30,7 +30,9 @@ class Config:
     GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
     
     # CORS Configuration
-    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+    # Strip whitespace from origins and filter out empty strings
+    allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001")
+    ALLOWED_ORIGINS = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
     
     # Logging Configuration
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
