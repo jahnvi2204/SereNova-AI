@@ -1,5 +1,8 @@
 """Database module for MongoDB connection and initialization."""
 import logging
+import os
+import ssl
+import sys
 from urllib.parse import quote_plus
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, InvalidURI
@@ -7,6 +10,10 @@ from config import Config
 
 
 logger = logging.getLogger(__name__)
+
+# Check if we're in production mode
+IS_PRODUCTION = os.getenv("FLASK_ENV", "development").lower() == "production"
+IS_WINDOWS = sys.platform == 'win32'
 
 
 class Database:
@@ -18,6 +25,22 @@ class Database:
         self._connected = False
         self._connect()
     
+    def _ensure_atlas_params(self, mongo_url):
+        """Ensure MongoDB Atlas connection string has required parameters."""
+        if 'mongodb+srv://' not in mongo_url:
+            return mongo_url
+        
+        # Check if connection string already has query parameters
+        if '?' in mongo_url:
+            # Check if retryWrites is already present
+            if 'retryWrites' not in mongo_url:
+                mongo_url += '&retryWrites=true&w=majority'
+        else:
+            # Add query parameters
+            mongo_url += '?retryWrites=true&w=majority'
+        
+        return mongo_url
+    
     def _connect(self):
         """Establish connection to MongoDB."""
         try:
@@ -26,16 +49,88 @@ class Database:
                 logger.warning("MONGO_URL is not set. Database operations will fail.")
                 return
             
+            # Ensure MongoDB Atlas connection string has proper parameters
+            if 'mongodb+srv://' in mongo_url:
+                mongo_url = self._ensure_atlas_params(mongo_url)
+                logger.info("Ensured MongoDB Atlas connection string has required parameters")
+            
             # Try to automatically fix MongoDB URI if password contains special characters
             # Parse and encode username/password if needed
             try:
-                self.client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
+                # Configure SSL/TLS for MongoDB Atlas connections
+                # This fixes SSL handshake issues on Windows
+                connection_options = {
+                    'serverSelectionTimeoutMS': 10000,  # Increased timeout
+                    'connectTimeoutMS': 20000,
+                    'socketTimeoutMS': 20000,
+                }
+                
+                # For mongodb+srv (Atlas), ensure TLS is properly configured
+                if 'mongodb+srv://' in mongo_url:
+                    connection_options['tls'] = True
+                    connection_options['tlsAllowInvalidCertificates'] = False
+                    
+                    # Production-ready SSL/TLS configuration for MongoDB Atlas
+                    try:
+                        import certifi
+                        # Use certifi CA certificates (most reliable for production)
+                        connection_options['tlsCAFile'] = certifi.where()
+                        
+                        # Windows-specific workaround: Allow invalid hostnames (certificates still validated)
+                        # This fixes TLSV1_ALERT_INTERNAL_ERROR on Windows while maintaining certificate validation
+                        if IS_WINDOWS and not IS_PRODUCTION:
+                            connection_options['tlsAllowInvalidHostnames'] = True
+                            logger.info("Using certifi CA certificates with Windows hostname workaround (dev mode)")
+                        else:
+                            logger.info("Using certifi CA certificates for MongoDB Atlas connection")
+                    except ImportError:
+                        logger.error("certifi is required for MongoDB Atlas connections. Install it: pip install certifi")
+                        # Try system default as fallback (less reliable)
+                        try:
+                            ssl_context = ssl.create_default_context()
+                            connection_options['ssl_context'] = ssl_context
+                            if IS_WINDOWS and not IS_PRODUCTION:
+                                connection_options['tlsAllowInvalidHostnames'] = True
+                            logger.warning("Using system default SSL context (certifi recommended)")
+                        except Exception as ssl_err:
+                            logger.error(f"Could not create SSL context: {ssl_err}")
+                            raise ConnectionFailure("SSL context creation failed. Install certifi: pip install certifi")
+                
+                self.client = MongoClient(mongo_url, **connection_options)
             except InvalidURI:
                 # Try to fix the URI by encoding username and password
                 try:
                     fixed_url = self._fix_mongodb_uri(mongo_url)
                     logger.info("Attempting to fix MongoDB URI by encoding credentials...")
-                    self.client = MongoClient(fixed_url, serverSelectionTimeoutMS=5000)
+                    # Configure SSL/TLS for MongoDB Atlas connections
+                    connection_options = {
+                        'serverSelectionTimeoutMS': 10000,
+                        'connectTimeoutMS': 20000,
+                        'socketTimeoutMS': 20000,
+                    }
+                    
+                    # For mongodb+srv (Atlas), ensure TLS is properly configured
+                    if 'mongodb+srv://' in fixed_url:
+                        connection_options['tls'] = True
+                        connection_options['tlsAllowInvalidCertificates'] = False
+                        # Production-ready SSL configuration
+                        try:
+                            import certifi
+                            connection_options['tlsCAFile'] = certifi.where()
+                            # Windows workaround for development
+                            if IS_WINDOWS and not IS_PRODUCTION:
+                                connection_options['tlsAllowInvalidHostnames'] = True
+                        except ImportError:
+                            logger.error("certifi is required for MongoDB Atlas. Install it: pip install certifi")
+                            try:
+                                ssl_context = ssl.create_default_context()
+                                connection_options['ssl_context'] = ssl_context
+                                if IS_WINDOWS and not IS_PRODUCTION:
+                                    connection_options['tlsAllowInvalidHostnames'] = True
+                            except Exception:
+                                raise ConnectionFailure("SSL configuration failed. Install certifi: pip install certifi")
+                    
+                    self.client = MongoClient(fixed_url, **connection_options)
                     logger.info("Successfully connected with fixed URI")
                 except Exception as fix_error:
                     logger.error("Failed to fix MongoDB URI: %s", fix_error)
@@ -45,14 +140,29 @@ class Database:
                     logger.error("Example: admin@123 should be admin%%40123")
                     logger.error("Special characters: @ -> %%40, : -> %%3A, / -> %%2F, # -> %%23, etc.")
                     logger.error("")
-                    logger.error("Your current MONGO_URL: %s", mongo_url)
+                    # Don't log full connection string in production (security)
+                    if IS_PRODUCTION:
+                        logger.error("Your MONGO_URL contains invalid characters")
+                    else:
+                        logger.error("Your current MONGO_URL: %s", mongo_url)
                     raise InvalidURI(
                         f"Invalid MongoDB URI. Please URL-encode special characters in your password.\n"
                         f"Example: If password is 'admin@123', change it to 'admin%40123' in .env"
                     )
             self.db = self.client[Config.MONGODB_DB_NAME]
-            # Test connection
-            self.client.admin.command('ping')
+            # Test connection with retry (only in development)
+            try:
+                self.client.admin.command('ping')
+            except Exception as ping_error:
+                if not IS_PRODUCTION:
+                    # Development: retry once (sometimes needed on Windows)
+                    logger.warning("Initial ping failed, retrying...")
+                    import time
+                    time.sleep(1)
+                    self.client.admin.command('ping')
+                else:
+                    # Production: fail fast, no retries
+                    raise
             self._connected = True
             logger.info("Connected to MongoDB successfully")
             self._init_collections()
@@ -62,6 +172,73 @@ class Database:
             logger.error("Example: mongodb://username:password@host:port/ or mongodb://localhost:27017/")
             raise
         except ConnectionFailure as e:
+            error_str = str(e)
+            # Check if it's an SSL/TLS error
+            if 'SSL' in error_str or 'TLS' in error_str or 'tlsv1' in error_str.lower():
+                logger.error("SSL/TLS handshake failed. This is a common issue on Windows.")
+                logger.error("Error: %s", e)
+                logger.error("")
+                logger.error("Troubleshooting steps for MongoDB Atlas on Windows:")
+                logger.error("1. Ensure certifi is installed: pip install certifi")
+                logger.error("2. Update pymongo: pip install --upgrade pymongo")
+                logger.error("3. Check MongoDB Atlas Network Access - ensure your IP is whitelisted")
+                logger.error("   (Go to Atlas Dashboard > Network Access > Add IP Address)")
+                logger.error("4. Verify your connection string format:")
+                logger.error("   mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority")
+                logger.error("5. Ensure password is URL-encoded if it contains special characters")
+                logger.error("")
+                # In production, do not attempt insecure fallbacks
+                if IS_PRODUCTION:
+                    logger.error("Production mode: Refusing insecure SSL fallbacks for security.")
+                    logger.error("Please ensure:")
+                    logger.error("1. certifi is installed: pip install certifi")
+                    logger.error("2. MongoDB Atlas Network Access is properly configured")
+                    logger.error("3. Connection string is correct and credentials are valid")
+                    raise ConnectionFailure(
+                        "SSL handshake failed in production mode. "
+                        "Insecure fallbacks are disabled for security. "
+                        "Please fix SSL configuration."
+                    )
+                
+                # Development mode: Try fallback with increased timeouts only
+                logger.warning("Development mode: Attempting fallback connection with increased timeouts...")
+                try:
+                    fallback_options = {
+                        'serverSelectionTimeoutMS': 20000,
+                        'connectTimeoutMS': 30000,
+                        'socketTimeoutMS': 30000,
+                    }
+                    # Process connection string for Atlas
+                    fallback_url = Config.MONGO_URL
+                    if 'mongodb+srv://' in fallback_url:
+                        fallback_url = self._ensure_atlas_params(fallback_url)
+                        fallback_options['tls'] = True
+                        fallback_options['tlsAllowInvalidCertificates'] = False
+                        # Use certifi with Windows hostname workaround if needed
+                        try:
+                            import certifi
+                            fallback_options['tlsCAFile'] = certifi.where()
+                            # Windows-specific: Allow invalid hostnames (certificates still validated)
+                            # This fixes TLSV1_ALERT_INTERNAL_ERROR on Windows
+                            if IS_WINDOWS:
+                                fallback_options['tlsAllowInvalidHostnames'] = True
+                                logger.info("Fallback: Using certifi with Windows hostname workaround")
+                            else:
+                                logger.info("Fallback: Using certifi CA file for MongoDB Atlas")
+                        except ImportError:
+                            logger.error("certifi is required. Install it: pip install certifi")
+                            raise ConnectionFailure("certifi is required for MongoDB Atlas connections")
+                    
+                    self.client = MongoClient(fallback_url, **fallback_options)
+                    self.db = self.client[Config.MONGODB_DB_NAME]
+                    self.client.admin.command('ping')
+                    self._connected = True
+                    logger.info("Connected successfully with fallback settings")
+                    self._init_collections()
+                    return
+                except Exception as fallback_error:
+                    logger.error("Fallback connection also failed: %s", fallback_error)
+            
             logger.error("Failed to connect to MongoDB: %s", e)
             logger.error("Please ensure MongoDB is running and MONGO_URL is correct in .env file")
             raise

@@ -339,3 +339,23 @@ def delete_session(session_id):
         logger.error("Delete session error: %s", e)
         return jsonify({"error": "Failed to delete session"}), 500
 
+
+@chat_bp.route("/playlists", methods=["POST"])
+@require_auth
+def get_playlists():
+    """Get Spotify playlist recommendations based on mood."""
+    try:
+        data = request.get_json()
+        mood = data.get("mood", "").strip()
+        
+        if not mood:
+            return jsonify({"error": "Mood is required"}), 400
+        
+        result = gemini_service.get_spotify_playlist_recommendations(mood)
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        logger.error("Get playlists error: %s", e)
+        return jsonify({"error": "Failed to get playlist recommendations"}), 500
+
