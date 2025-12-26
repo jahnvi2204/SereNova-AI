@@ -10,7 +10,22 @@ This guide covers deploying your SeraNova AI application using GitHub Actions.
 
 ## Deployment Options
 
-### Option 1: Vercel (Frontend) + Railway (Backend) - Recommended
+### Option 1: Vercel (Full Stack) - Recommended ⭐
+
+Deploy both frontend and backend to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed instructions.
+
+**Quick Steps:**
+1. Deploy backend: Import repo → Set root directory to `backend` → Add environment variables → Deploy
+2. Deploy frontend: Import repo → Set root directory to `frontend_1` → Add `REACT_APP_API_BASE_URL` → Deploy
+3. Update CORS in backend with frontend URL
+
+**Pros:**
+- Both services on same platform
+- Easy to manage
+- Automatic deployments
+- Free tier available
+
+### Option 2: Vercel (Frontend) + Railway (Backend)
 
 #### Frontend on Vercel
 
