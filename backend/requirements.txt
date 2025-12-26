@@ -7,3 +7,5 @@ pymongo==4.6.1
 certifi==2024.2.2
 # Google Gemini client
 google-generativeai==0.8.3
+# Production server
+gunicorn==21.2.0

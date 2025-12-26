@@ -92,6 +92,12 @@ def internal_error(error):
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import os
+    # Use PORT from environment (for production platforms like Railway, Render, Heroku)
+    port = int(os.environ.get("PORT", Config.PORT))
+    host = os.environ.get("HOST", Config.HOST)
+    debug = os.environ.get("FLASK_DEBUG", str(Config.FLASK_DEBUG)).lower() == "true"
+    
     logger.info("Starting SeraNova AI backend server...")
-    logger.info("Server running on http://%s:%s", Config.HOST, Config.PORT)
-    app.run(host=Config.HOST, port=Config.PORT, debug=Config.FLASK_DEBUG)
+    logger.info("Server running on http://%s:%s", host, port)
+    app.run(host=host, port=port, debug=debug)
