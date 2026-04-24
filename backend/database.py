@@ -23,6 +23,7 @@ class Database:
         self.client = None
         self.db = None
         self._connected = False
+<<<<<<< HEAD
         # Do not hard-crash app import if MongoDB is temporarily unavailable.
         # Routes can retry via get_collection(), and /health will reflect DB state.
         try:
@@ -30,6 +31,9 @@ class Database:
         except Exception as e:
             logger.error("Initial database connection failed: %s", e)
             self._connected = False
+=======
+        self._connect()
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
     
     def _ensure_atlas_params(self, mongo_url):
         """Ensure MongoDB Atlas connection string has required parameters."""
@@ -326,9 +330,12 @@ class Database:
     def get_collection(self, collection_name):
         """Get a collection from the database."""
         if not self._connected:
+<<<<<<< HEAD
             logger.warning("Database not connected. Attempting reconnection...")
             self._connect()
         if not self._connected:
+=======
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
             raise ConnectionError("Database is not connected. Please check MongoDB connection.")
         return self.db[collection_name]
 

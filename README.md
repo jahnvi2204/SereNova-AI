@@ -17,7 +17,11 @@ The chatbot now uses **Google Gemini** to generate empathetic, safe mental-healt
 2. **Backend API**
    - Framework: Flask
    - Auth: JWT-based authentication with bcrypt-hashed passwords
+<<<<<<< HEAD
   - Database: MongoDB for users, chat sessions, and message history
+=======
+   - Database: SQLite for users, chat sessions, and message history
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
    - Key endpoints:
      - `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/verify`
      - `POST /predict` – authenticated chat endpoint (used by main chat UI)
@@ -80,7 +84,11 @@ See `SETUP.md` for full, up-to-date instructions. In short:
    - Run: `python backend/server.py`
 
 2. **Frontend**
+<<<<<<< HEAD
    - In `frontend/`: `npm install` then `npm start`
+=======
+   - In `frontend_1/`: `npm install` then `npm start`
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 
 The app will be available at `http://localhost:3000` (frontend) talking to `http://127.0.0.1:5000` (backend) by default.
 
@@ -88,7 +96,11 @@ The app will be available at `http://localhost:3000` (frontend) talking to `http
 
 1. **Not a medical device**: SereNova is for emotional support, not diagnosis or treatment.
 2. **Safety**: For crisis or self-harm content, Gemini is prompted to encourage contacting local emergency services or professionals.
+<<<<<<< HEAD
 3. **Data storage**: Chat messages and sessions are stored in MongoDB; secure your credentials and back up data as needed.
+=======
+3. **Data storage**: Chat messages and sessions are stored in a local SQLite database; secure and back up as needed.
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 
 ## Future Improvements
 

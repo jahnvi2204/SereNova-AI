@@ -86,7 +86,11 @@ vercel env add ALLOWED_ORIGINS
 
 2. **Configure Frontend Project**
    - **Project Name**: `serenova-frontend` (or your choice)
+<<<<<<< HEAD
    - **Root Directory**: `frontend`
+=======
+   - **Root Directory**: `frontend_1`
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
    - **Framework Preset**: Create React App (auto-detected)
    - **Build Command**: `npm run build` (auto-filled)
    - **Output Directory**: `build` (auto-filled)
@@ -141,7 +145,11 @@ backend/
 ├── requirements.txt      # Python dependencies
 └── ... (other files)
 
+<<<<<<< HEAD
 frontend/
+=======
+frontend_1/
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 ├── package.json
 ├── src/
 └── ... (React app)

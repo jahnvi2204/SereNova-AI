@@ -16,7 +16,11 @@ Deploy both frontend and backend to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_
 
 **Quick Steps:**
 1. Deploy backend: Import repo → Set root directory to `backend` → Add environment variables → Deploy
+<<<<<<< HEAD
 2. Deploy frontend: Import repo → Set root directory to `frontend` → Add `REACT_APP_API_BASE_URL` → Deploy
+=======
+2. Deploy frontend: Import repo → Set root directory to `frontend_1` → Add `REACT_APP_API_BASE_URL` → Deploy
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 3. Update CORS in backend with frontend URL
 
 **Pros:**
@@ -47,7 +51,11 @@ Deploy both frontend and backend to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_
      - `VERCEL_PROJECT_ID`: Your Vercel project ID (found in project settings)
 
 4. **Configure Vercel Project**
+<<<<<<< HEAD
    - Root Directory: `frontend`
+=======
+   - Root Directory: `frontend_1`
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
    - Build Command: `npm run build`
    - Output Directory: `build`
    - Install Command: `npm ci`
@@ -109,7 +117,11 @@ Deploy both frontend and backend to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_
    - Create a new "Static Site"
    - Connect your GitHub repository
    - Settings:
+<<<<<<< HEAD
      - **Root Directory**: `frontend`
+=======
+     - **Root Directory**: `frontend_1`
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
      - **Build Command**: `npm install && npm run build`
      - **Publish Directory**: `build`
 
@@ -147,7 +159,11 @@ Deploy both frontend and backend to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_
 
 4. **Deploy Frontend**
    ```bash
+<<<<<<< HEAD
    cd frontend
+=======
+   cd frontend_1
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
    npm install -g serve
    echo "web: serve -s build" > Procfile
    heroku git:remote -a serenova-frontend
@@ -173,6 +189,7 @@ LOG_LEVEL=INFO
 
 ### Frontend Environment Variables
 
+<<<<<<< HEAD
 Update `frontend/src/api/api.js` to use your backend URL:
 
 ```javascript
@@ -182,6 +199,17 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://your-backend
 Create `frontend/.env.production`:
 ```env
 REACT_APP_API_BASE_URL=https://your-backend-url.railway.app
+=======
+Update `frontend_1/src/api/api.js` to use your backend URL:
+
+```javascript
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://your-backend-url.railway.app';
+```
+
+Create `frontend_1/.env.production`:
+```env
+REACT_APP_API_URL=https://your-backend-url.railway.app
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 ```
 
 ## GitHub Secrets Setup
@@ -227,10 +255,17 @@ web: gunicorn server:app --bind 0.0.0.0:$PORT
 
 ### Update API Base URL
 
+<<<<<<< HEAD
 In `frontend/src/api/api.js`, ensure it uses environment variables:
 
 ```javascript
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+=======
+In `frontend_1/src/api/api.js`, ensure it uses environment variables:
+
+```javascript
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 ```
 
 ### Update CORS in Backend
@@ -282,7 +317,11 @@ ALLOWED_ORIGINS = os.getenv(
 - Check CORS settings match your frontend URL
 
 ### Frontend Issues
+<<<<<<< HEAD
 - Verify `REACT_APP_API_BASE_URL` is set correctly
+=======
+- Verify `REACT_APP_API_URL` is set correctly
+>>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 - Check browser console for API errors
 - Ensure backend CORS allows your frontend domain
 
