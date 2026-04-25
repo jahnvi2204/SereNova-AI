@@ -7,7 +7,6 @@ from pymongo.errors import DuplicateKeyError
 
 from database import db
 from auth import hash_password, verify_password, generate_token, verify_token
-from utils import object_id_to_str
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +18,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 def signup():
     """Register a new user."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         email = data.get("email", "").strip().lower()
         password = data.get("password", "")
         full_name = data.get("fullName", "").strip()
@@ -79,7 +78,7 @@ def signup():
 def login():
     """Authenticate user and return JWT token."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         email = data.get("email", "").strip().lower()
         password = data.get("password", "")
         

@@ -50,12 +50,8 @@ This guide explains how to connect the React frontend with the Flask backend.
 
 1. Navigate to the frontend directory:
    ```bash
-<<<<<<< HEAD
    cd frontend
-=======
-   cd frontend_1
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
-   ```
+  ```
 
 2. Install Node.js dependencies:
    ```bash

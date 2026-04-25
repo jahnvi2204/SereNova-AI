@@ -14,11 +14,8 @@ cd ..
 sleep 3
 
 echo "[2/2] Starting React Frontend..."
-<<<<<<< HEAD
 cd frontend
-=======
-cd frontend_1
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 npm start &
 FRONTEND_PID=$!
 cd ..

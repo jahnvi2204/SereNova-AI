@@ -187,6 +187,25 @@ export const chatAPI = {
     }
   },
 
+  // Send message to agentic endpoint (auth required)
+  sendAgentMessage: async (message, sessionId = null) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat/agent`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          message,
+          ...(sessionId && { session_id: sessionId }),
+        }),
+      });
+
+      return await handleResponse(response);
+    } catch (error) {
+      console.error('Send agent message error:', error);
+      throw error;
+    }
+  },
+
   // Send message to public endpoint (no auth required)
   sendMessagePublic: async (message) => {
     try {
@@ -247,6 +266,22 @@ export const chatAPI = {
       return await handleResponse(response);
     } catch (error) {
       console.error('Get session messages error:', error);
+      throw error;
+    }
+  },
+
+  // Add a message to a session and receive AI response
+  addSessionMessage: async (sessionId, message) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ message }),
+      });
+
+      return await handleResponse(response);
+    } catch (error) {
+      console.error('Add session message error:', error);
       throw error;
     }
   },

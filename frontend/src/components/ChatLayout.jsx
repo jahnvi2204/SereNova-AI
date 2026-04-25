@@ -167,21 +167,8 @@ const ChatLayout = () => {
     setIsLoading(true);
     
     try {
-      // Use the session messages endpoint which saves messages and updates title automatically
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/chat/sessions/${currentSessionId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({ message: currentMessage.trim() }),
-      });
-      
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to send message');
-      }
+      // Use centralized API helper for session message flow
+      const responseData = await chatAPI.addSessionMessage(currentSessionId, currentMessage.trim());
       
       const botMessageId = `bot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       setConversation(prev => [

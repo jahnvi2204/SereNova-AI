@@ -36,12 +36,8 @@
 
 1. In a new terminal from the project root:
    ```bash
-<<<<<<< HEAD
    cd frontend
-=======
-   cd frontend_1
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
-   npm install
+  npm install
    npm start
    ```
 2. The React app will be available at `http://localhost:3000`.
@@ -63,11 +59,8 @@
 
 ## Tech Stack
 
-<<<<<<< HEAD
 - **Backend**: Flask + Google Gemini + MongoDB + JWT + bcrypt
-=======
-- **Backend**: Flask + Google Gemini + SQLite + JWT + bcrypt
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 - **Frontend**: React + Tailwind CSS + React Router
 
 # SeraNova AI - Setup Guide
@@ -81,11 +74,8 @@
 4. Start server: `python server.py`
 
 ### Frontend Setup
-<<<<<<< HEAD
 1. Navigate to frontend: `cd frontend`
-=======
-1. Navigate to frontend: `cd frontend_1`
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 2. Install dependencies: `npm install`
 3. Start development server: `npm start`
 
@@ -94,11 +84,8 @@
 ### Backend Features ✓
 - User authentication with JWT tokens
 - Password hashing with bcrypt
-<<<<<<< HEAD
 - MongoDB database for users and chat sessions
-=======
-- SQLite database for users and chat sessions
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 - Chat message storage and retrieval
 - AI chatbot with TensorFlow model
 - CORS configured for frontend communication
@@ -127,11 +114,8 @@
 
 3. **Session Management**: Frontend loads user sessions → Backend retrieves from database → User can switch between conversations
 
-<<<<<<< HEAD
 4. **Database**: MongoDB stores users, chat sessions, and message history
-=======
-4. **Database**: Auto-created SQLite database stores users, chat sessions, and message history
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 
 ## 📱 Pages Connected
 - **Home (/)**: Preview chatbot, links to login/signup
@@ -140,11 +124,8 @@
 - **Chat (/chat)**: Full chat interface with sessions (requires auth)
 
 ## 🛠️ Tech Stack
-<<<<<<< HEAD
 - **Backend**: Flask + Google Gemini + MongoDB + JWT + bcrypt
-=======
-- **Backend**: Flask + Google Gemini + SQLite + JWT + bcrypt
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 - **Frontend**: React + Tailwind CSS + React Router
 - **API**: RESTful endpoints with proper authentication
 

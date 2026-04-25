@@ -1,9 +1,6 @@
 # Frontend Environment Variables (.env)
-<<<<<<< HEAD
 # Copy this content to a .env file in the frontend directory
-=======
-# Copy this content to a .env file in the frontend_1 directory
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 
 # API Configuration
 REACT_APP_API_BASE_URL=http://localhost:5000

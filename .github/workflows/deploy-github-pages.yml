@@ -32,7 +32,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-<<<<<<< HEAD
           cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
@@ -41,17 +40,7 @@ jobs:
       
       - name: Build React app
         working-directory: ./frontend
-=======
-          cache-dependency-path: frontend_1/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: ./frontend_1
-        run: npm ci
-      
-      - name: Build React app
-        working-directory: ./frontend_1
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
-        run: npm run build
+       run: npm run build
         env:
           CI: false
           # Set your backend API URL here or use GitHub Secrets
@@ -63,11 +52,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-<<<<<<< HEAD
           path: './frontend/build'
-=======
-          path: './frontend_1/build'
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 
   deploy:
     name: Deploy to GitHub Pages

@@ -8,6 +8,7 @@ from bson import ObjectId
 from database import db
 from auth import verify_token
 from gemini_service import gemini_service
+from agent_service import agentic_chat_service
 from utils import object_id_to_str, str_to_object_id
 
 
@@ -39,13 +40,13 @@ def require_auth(f):
 def predict():
     """Generate AI response for authenticated user."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         user_input = data.get("message", "").strip()
         
         if not user_input:
             return jsonify({"error": "Message is required"}), 400
         
-        result = gemini_service.generate_mental_health_response(user_input)
+        result = agentic_chat_service.generate_agent_response(user_input=user_input, history=[])
         
         return jsonify(result), 200
         
@@ -58,13 +59,13 @@ def predict():
 def predict_public():
     """Generate AI response for public (unauthenticated) users."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         user_input = data.get("message", "").strip()
         
         if not user_input:
             return jsonify({"error": "Message is required"}), 400
         
-        result = gemini_service.generate_mental_health_response(user_input)
+        result = agentic_chat_service.generate_agent_response(user_input=user_input, history=[])
         
         return jsonify(result), 200
         
@@ -109,7 +110,7 @@ def create_session():
     """Create a new chat session."""
     try:
         user_id = request.user_id
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         title = data.get("title", "New Chat").strip() or "New Chat"
         
         sessions_collection = db.get_collection("chat_sessions")
@@ -203,19 +204,37 @@ def add_message(session_id):
         if session["user_id"] != user_id:
             return jsonify({"error": "Unauthorized access to session"}), 403
         
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         user_message = data.get("message", "").strip()
         
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
         
-        # Generate AI response
-        ai_result = gemini_service.generate_mental_health_response(user_message)
+        # Load limited history for agent context
+        messages_collection = db.get_collection("messages")
+        history_docs = list(
+            messages_collection.find({"session_id": session_id})
+            .sort("created_at", -1)
+            .limit(8)
+        )
+        history_docs.reverse()
+        history = [
+            {
+                "message": item.get("message", ""),
+                "response": item.get("response", ""),
+            }
+            for item in history_docs
+        ]
+
+        # Generate AI response with agent context/tools
+        ai_result = agentic_chat_service.generate_agent_response(
+            user_input=user_message,
+            history=history,
+        )
         ai_response = ai_result.get("response", "")
         ai_intent = ai_result.get("intent", "")
         
         # Check if this is the first message in the session (for updating title)
-        messages_collection = db.get_collection("messages")
         existing_messages_count = messages_collection.count_documents({"session_id": session_id})
         is_first_message = existing_messages_count == 0
         
@@ -248,6 +267,7 @@ def add_message(session_id):
             "message_id": message_id,
             "response": ai_response,
             "intent": ai_intent,
+            "agent": ai_result.get("agent", {}),
         }), 201
         
     except Exception as e:
@@ -275,7 +295,7 @@ def update_session(session_id):
         if session["user_id"] != user_id:
             return jsonify({"error": "Unauthorized access to session"}), 403
         
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         update_data = {}
         
         if "title" in data:
@@ -345,7 +365,7 @@ def delete_session(session_id):
 def get_playlists():
     """Get Spotify playlist recommendations based on mood."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         mood = data.get("mood", "").strip()
         
         if not mood:
@@ -358,4 +378,54 @@ def get_playlists():
     except Exception as e:
         logger.error("Get playlists error: %s", e)
         return jsonify({"error": "Failed to get playlist recommendations"}), 500
+
+
+@chat_bp.route("/agent", methods=["POST"])
+@require_auth
+def agent_chat():
+    """Agentic chat endpoint with optional session memory."""
+    try:
+        data = request.get_json(silent=True) or {}
+        user_input = data.get("message", "").strip()
+        session_id = data.get("session_id", "").strip()
+
+        if not user_input:
+            return jsonify({"error": "Message is required"}), 400
+
+        history = []
+        if session_id:
+            obj_session_id = str_to_object_id(session_id)
+            if not obj_session_id:
+                return jsonify({"error": "Invalid session ID"}), 400
+
+            sessions_collection = db.get_collection("chat_sessions")
+            session = sessions_collection.find_one({"_id": obj_session_id})
+            if not session:
+                return jsonify({"error": "Session not found"}), 404
+            if session.get("user_id") != request.user_id:
+                return jsonify({"error": "Unauthorized access to session"}), 403
+
+            messages_collection = db.get_collection("messages")
+            history_docs = list(
+                messages_collection.find({"session_id": session_id})
+                .sort("created_at", -1)
+                .limit(8)
+            )
+            history_docs.reverse()
+            history = [
+                {
+                    "message": item.get("message", ""),
+                    "response": item.get("response", ""),
+                }
+                for item in history_docs
+            ]
+
+        result = agentic_chat_service.generate_agent_response(
+            user_input=user_input,
+            history=history,
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error("Agent chat error: %s", e)
+        return jsonify({"error": "Failed to process agent chat"}), 500
 

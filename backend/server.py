@@ -61,8 +61,9 @@ def home():
 def health():
     """Health check endpoint."""
     try:
-        # Test database connection
-        db.client.admin.command('ping')
+        # Trigger lazy reconnect if needed, then ping.
+        db_handle = db.get_collection("users").database
+        db_handle.client.admin.command('ping')
         return jsonify({
             "status": "healthy",
             "database": "connected"

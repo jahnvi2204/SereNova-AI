@@ -56,15 +56,10 @@ LOG_LEVEL=INFO
 | `LOG_LEVEL`         | Logging level (`DEBUG`/`INFO`/`WARNING`/`ERROR`)       | `INFO`               | No       |
 
 
-<<<<<<< HEAD
 ## Frontend Environment Variables (`frontend/.env`)
 
 Create a `.env` file in `frontend`:
-=======
-## Frontend Environment Variables (`frontend_1/.env`)
 
-Create a `.env` file in `frontend_1`:
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 
 ```env
 # API
@@ -111,11 +106,8 @@ FLASK_DEBUG=True
 FLASK_SECRET_KEY=your-super-secret-key-change-in-production
 
 # MongoDB Configuration
-<<<<<<< HEAD
 MONGO_URL=mongodb://localhost:27017/
-=======
-MONGODB_URI=mongodb://localhost:27017/
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 MONGODB_DB_NAME=serenova_ai
 
 # Gemini Configuration
@@ -137,15 +129,10 @@ PORT=5000
 LOG_LEVEL=INFO
 ```
 
-<<<<<<< HEAD
 ### Frontend Environment Variables (.env in /frontend directory)
 
 Create a `.env` file in the `frontend` directory with these variables:
-=======
-### Frontend Environment Variables (.env in /frontend_1 directory)
 
-Create a `.env` file in the `frontend_1` directory with these variables:
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
 
 ```env
 # API Configuration
@@ -188,11 +175,8 @@ REACT_APP_ENABLE_ANALYTICS=false
 | `FLASK_ENV` | Flask environment (development/production) | - | No |
 | `FLASK_DEBUG` | Enable/disable Flask debug mode | True | No |
 | `FLASK_SECRET_KEY` | Secret key for Flask sessions and cookies | - | **Yes** |
-<<<<<<< HEAD
 | `MONGO_URL` | MongoDB connection string | mongodb://localhost:27017/ | **Yes** |
-=======
-| `MONGODB_URI` | MongoDB connection string | mongodb://localhost:27017/ | **Yes** |
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 | `MONGODB_DB_NAME` | MongoDB database name | serenova_ai | No |
 | `GEMINI_API_KEY` | Google Gemini API key used by the chatbot | - | **Yes** |
 | `GEMINI_MODEL_NAME` | Gemini model name (e.g. `gemini-1.5-pro`) | gemini-1.5-pro | No |
@@ -237,11 +221,8 @@ pip install python-dotenv
 
 ### 2. Frontend Setup
 ```bash
-<<<<<<< HEAD
 cd frontend
-=======
-cd frontend_1
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 cp env_variables.txt .env
 # Edit .env file with your values
 ```
@@ -295,12 +276,8 @@ SereNova-AI/
 │   ├── .env                 # Backend environment variables
 │   ├── env_variables.txt    # Backend template
 │   └── requirements.txt     # Including python-dotenv
-<<<<<<< HEAD
 └── frontend/
-=======
-└── frontend_1/
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
-    ├── .env                 # Frontend environment variables
+   ├── .env                 # Frontend environment variables
     └── env_variables.txt    # Frontend template
 ```
 
@@ -317,11 +294,8 @@ SereNova-AI/
 2. **Frontend variables undefined**: Check they start with `REACT_APP_`
 3. **Backend errors**: Verify `python-dotenv` is installed
 4. **CORS errors**: Check `ALLOWED_ORIGINS` matches frontend URL
-<<<<<<< HEAD
 5. **Database errors**: Verify `MONGO_URL` is valid and MongoDB/Atlas is reachable
-=======
-5. **Database errors**: Verify `DATABASE_PATH` directory exists
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 
 ### Testing Configuration
 
@@ -331,11 +305,8 @@ cd backend
 python -c "from dotenv import load_dotenv; import os; load_dotenv(); print('Secret key:', os.getenv('FLASK_SECRET_KEY'))"
 
 # Test frontend build
-<<<<<<< HEAD
 cd frontend
-=======
-cd frontend_1
->>>>>>> 9b714ecfe3f2dbb84015c29a62856b5d69863a63
+
 npm run build
 ```
 
