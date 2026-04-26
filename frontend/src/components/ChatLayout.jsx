@@ -321,63 +321,66 @@ const ChatLayout = () => {
   const isLongMessage = message.length > 50;
 
   return (
-    <div className="flex flex-col h-screen bg-theme-background">
-      {/* Navbar */}
+    <div className="app-mesh flex h-screen max-h-screen flex-col overflow-hidden">
+      <div className="mesh-grid pointer-events-none" />
       <Navbar />
-      
-      <div className="flex flex-1 overflow-hidden pt-16">
-      {/* Mobile sidebar toggle */}
-      <button 
-        onClick={toggleSidebar} 
-        className="md:hidden fixed z-20 bottom-5 left-5 bg-theme-highlight text-theme-primary-text p-3 rounded-full shadow-lg"
+
+      <div className="relative z-10 flex min-h-0 flex-1 flex-row overflow-hidden pt-24">
+      <button
+        type="button"
+        onClick={toggleSidebar}
+        className="fixed bottom-5 left-5 z-20 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-zinc-100 shadow-glow backdrop-blur-xl md:hidden"
+        aria-label="Toggle sidebar"
       >
         {sidebarOpen ? <FiX /> : <FiMenu />}
       </button>
-      
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                       md:translate-x-0 transition-transform duration-300 ease-in-out 
-                       fixed md:static w-72 h-full z-10 bg-theme-background shadow-lg p-4 flex flex-col`}>
-        <div className="flex items-center justify-between mb-8">
+
+      <div
+        className={`${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } fixed z-30 flex h-full w-72 max-w-[85vw] flex-col border-r border-white/[0.08] bg-zinc-950/80 p-4 shadow-glow-sm backdrop-blur-2xl transition-transform duration-300 ease-out md:static md:translate-x-0`}
+      >
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FiMessageSquare className="text-theme-primary-text text-xl" />
-            <h1 className="text-xl text-theme-primary-text font-bold">SereNova AI</h1>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400/20 to-indigo-500/20 ring-1 ring-white/10" />
+            <h1 className="text-sm font-semibold tracking-tight text-zinc-100">SereNova</h1>
           </div>
-          <button 
-            onClick={toggleSidebar} 
-            className="md:hidden text-theme-primary-text"
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="text-zinc-400 md:hidden"
             aria-label="Close sidebar"
           >
             <FiChevronLeft size={20} />
           </button>
         </div>
-        
-        {/* New chat button */}
-        <button 
+
+        <button
+          type="button"
           onClick={startNewChat}
-          className="flex items-center gap-2 mb-4 w-full p-3 bg-theme-surface hover:bg-theme-highlight text-theme-primary-text rounded-lg transition"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-sm font-medium text-zinc-100 transition hover:border-white/20 hover:bg-white/[0.08]"
         >
           <FiPlus />
-          <span>New Chat</span>
+          <span>New session</span>
         </button>
 
-        {/* Conversations list */}
-        <div className="mb-6">
-          <h2 className="text-xs uppercase text-theme-primary-text font-semibold mb-2 tracking-wider">Recent Chats</h2>
+        <div className="mb-6 min-h-0 flex-1 overflow-y-auto pr-0.5">
+          <h2 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Sessions</h2>
           <div className="space-y-1">
             {conversations.map((chat) => (
               <button
                 key={chat.id}
+                type="button"
                 onClick={() => selectChat(chat.id)}
                 onContextMenu={(e) => handleChatRightClick(e, chat.id)}
-                className={`w-full text-left p-3 rounded-lg transition text-sm flex items-center gap-2 ${
-                  chat.active 
-                    ? 'bg-theme-highlight text-theme-primary-text font-medium hover:bg-theme-highlight' 
-                    : 'text-theme-primary-text hover:bg-theme-accent/30'
+                className={`flex w-full items-center gap-2 rounded-xl p-3 text-left text-sm transition ${
+                  chat.active
+                    ? 'bg-white/[0.1] font-medium text-white ring-1 ring-white/10'
+                    : 'text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-200'
                 }`}
               >
-                <FiMessageSquare size={16} />
-                <span className="truncate text-theme-primary-text">{chat.title}</span>
+                <FiMessageSquare size={16} className="shrink-0 opacity-60" />
+                <span className="truncate">{chat.title || 'Chat'}</span>
               </button>
             ))}
           </div>
@@ -385,7 +388,7 @@ const ChatLayout = () => {
           {/* Context Menu */}
           {contextMenu.visible && (
             <div
-              className="fixed bg-theme-surface border border-theme-accent rounded-lg shadow-lg z-50 py-2 min-w-[150px]"
+              className="fixed z-50 min-w-[150px] rounded-xl border border-white/10 bg-zinc-950/95 py-2 shadow-2xl backdrop-blur-xl"
               style={{
                 left: `${contextMenu.x}px`,
                 top: `${contextMenu.y}px`,
@@ -404,17 +407,19 @@ const ChatLayout = () => {
           )}
         </div>
 
-        <nav className="flex-1 space-y-1">
-          <button 
+        <nav className="mt-auto space-y-1 border-t border-white/[0.06] pt-4">
+          <button
+            type="button"
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-3 p-3 text-theme-primary-text hover:bg-theme-accent rounded-lg transition w-full text-left"
+            className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm text-zinc-400 transition hover:bg-white/[0.05] hover:text-zinc-200"
           >
             <FiSettings size={18} />
             <span>Settings</span>
           </button>
-          <button 
+          <button
+            type="button"
             onClick={() => setShowProfile(true)}
-            className="flex items-center gap-3 p-3 text-theme-primary-text hover:bg-theme-accent rounded-lg transition w-full text-left"
+            className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm text-zinc-400 transition hover:bg-white/[0.05] hover:text-zinc-200"
           >
             <FiUser size={18} />
             <span>Profile</span>
@@ -422,49 +427,47 @@ const ChatLayout = () => {
         </nav>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 bg-theme-surface flex flex-col">
-        {/* Chat header */}
-        <div className="p-4 bg-theme-surface border-b border-theme-accent">
-          <h2 className="font-bold text-lg text-theme-primary-text font-serif"> 
-            {conversations.find(c => c.active)?.title || "Chat"}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent">
+        <div className="border-b border-white/[0.08] bg-black/20 px-5 py-4 backdrop-blur-xl">
+          <h2 className="text-sm font-medium tracking-tight text-zinc-100">
+            {conversations.find((c) => c.active)?.title || 'Session'}
           </h2>
         </div>
-        
-        <div className="flex-1 flex flex-col p-6 overflow-hidden">
-          <div className="flex-1 bg-theme-background rounded-xl shadow-md overflow-hidden flex flex-col">
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
+          <div className="glass flex min-h-0 flex-1 flex-col overflow-hidden p-0">
             
             {/* Messages container */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
               {conversation.map((entry, index) => (
-                <div 
-                  key={entry.id || `msg-${index}-${entry.text?.substring(0, 10)}-${entry.isUser}`} 
-                  className={`flex ${entry.isUser ? 'justify-end' : 'justify-start'} animate-fadeIn`}
+                <div
+                  key={entry.id || `msg-${index}-${entry.text?.substring(0, 10)}-${entry.isUser}`}
+                  className={`flex ${entry.isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   {!entry.isUser && (
-                    <div className="w-8 h-8 rounded-full bg-theme-highlight/20 flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                      <FiMessageSquare className="text-theme-highlight" />
+                    <div className="mr-2 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-white/10">
+                      <FiMessageSquare className="text-zinc-300" />
                     </div>
                   )}
-                  
-                  <div 
-                    className={`max-w-[75%] p-4 rounded-2xl ${
-                      entry.isUser 
-                        ? 'bg-theme-highlight text-theme-background rounded-tr-none' 
-                        : 'bg-theme-surface rounded-tl-none text-theme-primary-text'
+
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      entry.isUser
+                        ? 'bg-white text-zinc-900'
+                        : 'border border-white/[0.08] bg-white/[0.04] text-zinc-200'
                     }`}
                   >
-                    <p className="leading-relaxed text-theme-primary-text">{entry.text}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{entry.text}</p>
                     {!entry.isUser && entry.intent && (
-                      <span className="inline-block text-xs mt-2 opacity-70 px-2 py-1 rounded-full bg-theme-accent/30 text-theme-primary-text">
+                      <span className="mt-2 inline-block rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
                         {entry.intent}
                       </span>
                     )}
                   </div>
-                  
+
                   {entry.isUser && (
-                    <div className="w-8 h-8 rounded-full bg-theme-highlight flex items-center justify-center ml-2 mt-1 flex-shrink-0">
-                      <FiUser className="text-theme-primary-text" />
+                    <div className="ml-2 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-zinc-700/90">
+                      <FiUser className="text-zinc-200" />
                     </div>
                   )}
                 </div>
@@ -473,14 +476,14 @@ const ChatLayout = () => {
               {/* Loading indicator */}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="w-8 h-8 rounded-full bg-theme-highlight/20 flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                    <FiMessageSquare className="text-theme-highlight" />
+                  <div className="mr-2 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
+                    <FiMessageSquare className="text-zinc-400" />
                   </div>
-                  <div className="max-w-[70%] p-4 rounded-2xl bg-theme-surface rounded-tl-none">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-theme-highlight animate-bounce"></div>
-                      <div className="w-2 h-2 rounded-full bg-theme-highlight animate-bounce delay-75"></div>
-                      <div className="w-2 h-2 rounded-full bg-theme-highlight animate-bounce delay-150"></div>
+                  <div className="max-w-[70%] rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3">
+                    <div className="flex gap-1.5">
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-500" />
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:0.1s]" />
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:0.2s]" />
                     </div>
                   </div>
                 </div>
@@ -491,18 +494,17 @@ const ChatLayout = () => {
             </div>
 
             {/* Input area */}
-            <div className="border-t border-theme-accent100 p-4">
+            <div className="border-t border-white/[0.08] p-4 sm:p-5">
               <div className="flex items-end gap-2">
-                <div className="flex-1 relative">
+                <div className="relative flex-1">
                   <textarea
                     ref={inputRef}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type your message..."
+                    placeholder="Message…"
                     disabled={isLoading}
                     rows={isLongMessage ? 3 : 1}
-                    className="w-full p-4 pr-10 border border-theme-accent rounded-xl focus:outline-none focus:ring-2 focus:ring-theme-highlight disabled:bg-theme-surface resize-none transition-all text-theme-primary-text placeholder:text-theme-secondary-text bg-theme-surface"
-                    style={{ color: '#E0E6F3' }}
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/30 px-4 py-3.5 pr-12 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/10 disabled:opacity-50"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -510,27 +512,25 @@ const ChatLayout = () => {
                       }
                     }}
                   />
-                  <div className="absolute bottom-3 right-3 text-theme-secondary-text text-xs">
-                    {message.length > 0 && `${message.length} chars`}
+                  <div className="absolute bottom-3 right-3 text-xs text-zinc-600">
+                    {message.length > 0 ? `${message.length}` : ''}
                   </div>
                 </div>
-                
+
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={isLoading || !message.trim()}
-                  className={`p-4 rounded-xl text-theme-primary-text ${
-                    isLoading || !message.trim() 
-                      ? 'bg-theme-accent cursor-not-allowed' 
-                      : 'bg-theme-highlight hover:bg-theme-highlight'
-                  } transition-colors flex-shrink-0`}
+                  className={`flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-2xl text-zinc-950 transition ${
+                    isLoading || !message.trim()
+                      ? 'cursor-not-allowed bg-zinc-800 text-zinc-600'
+                      : 'bg-white hover:bg-zinc-100'
+                  }`}
                 >
                   <FiSend size={18} />
                 </button>
               </div>
-              
-              <div className="mt-2 text-xs text-theme-secondary-text px-1">
-                Press Enter to send, Shift+Enter for a new line
-              </div>
+              <p className="mt-2 text-[11px] text-zinc-600">Enter to send · Shift+Enter for newline</p>
             </div>
           </div>
         </div>
@@ -539,38 +539,35 @@ const ChatLayout = () => {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSettings(false)}>
-          <div className="bg-theme-background rounded-xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-theme-primary-text">Settings</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
+          <div className="glass mx-4 w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-zinc-100">Settings</h2>
               <button
+                type="button"
                 onClick={() => setShowSettings(false)}
-                className="text-theme-secondary-text hover:text-theme-primary-text transition"
+                className="text-zinc-500 transition hover:text-zinc-200"
               >
-                <FiXCircle size={24} />
+                <FiXCircle size={22} />
               </button>
             </div>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-theme-surface rounded-lg">
-                <h3 className="text-theme-primary-text font-semibold mb-2">Appearance</h3>
-                <p className="text-theme-secondary-text text-sm">Theme settings coming soon</p>
+
+            <div className="space-y-3 text-sm text-zinc-500">
+              <div className="glass-tight p-4">
+                <h3 className="mb-1 font-medium text-zinc-200">Appearance</h3>
+                <p>Coming soon.</p>
               </div>
-              
-              <div className="p-4 bg-theme-surface rounded-lg">
-                <h3 className="text-theme-primary-text font-semibold mb-2">Notifications</h3>
-                <p className="text-theme-secondary-text text-sm">Notification preferences coming soon</p>
+              <div className="glass-tight p-4">
+                <h3 className="mb-1 font-medium text-zinc-200">Notifications</h3>
+                <p>Coming soon.</p>
               </div>
-              
-              <div className="p-4 bg-theme-surface rounded-lg">
-                <h3 className="text-theme-primary-text font-semibold mb-2">Privacy</h3>
-                <p className="text-theme-secondary-text text-sm">Privacy settings coming soon</p>
+              <div className="glass-tight p-4">
+                <h3 className="mb-1 font-medium text-zinc-200">Privacy</h3>
+                <p>Coming soon.</p>
               </div>
-              
-              <div className="p-4 bg-theme-surface rounded-lg">
-                <h3 className="text-theme-primary-text font-semibold mb-2">About</h3>
-                <p className="text-theme-secondary-text text-sm">SereNova AI v1.0.0</p>
-                <p className="text-theme-secondary-text text-sm">Your Personal Mental Health Companion</p>
+              <div className="glass-tight p-4">
+                <h3 className="mb-1 font-medium text-zinc-200">About</h3>
+                <p className="text-zinc-400">SereNova · v1.0.0</p>
               </div>
             </div>
           </div>
@@ -579,83 +576,69 @@ const ChatLayout = () => {
 
       {/* Profile Modal */}
       {showProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowProfile(false)}>
-          <div className="bg-theme-background rounded-xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-theme-primary-text">Profile</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
+          <div className="glass mx-4 w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-zinc-100">Profile</h2>
               <button
+                type="button"
                 onClick={() => setShowProfile(false)}
-                className="text-theme-secondary-text hover:text-theme-primary-text transition"
+                className="text-zinc-500 transition hover:text-zinc-200"
               >
-                <FiXCircle size={24} />
+                <FiXCircle size={22} />
               </button>
             </div>
-            
+
             {user ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-center mb-6">
-                  <div className="w-24 h-24 rounded-full bg-theme-highlight flex items-center justify-center">
-                    <FiUser size={48} className="text-theme-primary-text" />
+              <div className="space-y-5">
+                <div className="mb-2 flex items-center justify-center">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.08] ring-1 ring-white/10">
+                    <FiUser size={36} className="text-zinc-200" />
                   </div>
                 </div>
-                
-                {/* Username and Email Display at Top */}
-                <div className="text-center mb-6 pb-4 border-b border-theme-accent">
-                  <h3 className="text-xl font-bold text-theme-primary-text">
+
+                <div className="mb-4 border-b border-white/[0.08] pb-4 text-center">
+                  <h3 className="text-lg font-semibold text-zinc-100">
                     {user.full_name || user.name || user.fullName || 'User'}
                   </h3>
-                  <p className="text-theme-secondary-text text-sm mt-1">
+                  <p className="mt-1 text-sm text-zinc-500">
                     {user.email || 'No email set'}
                   </p>
                 </div>
-                
-                <div className="space-y-4">
-                  <div className="p-4 bg-theme-surface rounded-lg">
-                    <label className="text-xs uppercase text-theme-secondary-text font-semibold tracking-wider mb-2 block">
-                      Full Name
-                    </label>
-                    <p className="text-theme-primary-text text-lg font-medium">
-                      {user.full_name || user.name || user.fullName || 'Not set'}
-                    </p>
+
+                <div className="space-y-3 text-sm">
+                  <div className="glass-tight p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Name</p>
+                    <p className="mt-1 text-zinc-200">{user.full_name || user.name || user.fullName || 'Not set'}</p>
                   </div>
-                  
-                  <div className="p-4 bg-theme-surface rounded-lg">
-                    <label className="text-xs uppercase text-theme-secondary-text font-semibold tracking-wider mb-2 block">
-                      Email Address
-                    </label>
-                    <p className="text-theme-primary-text text-lg font-medium">
-                      {user.email || 'Not set'}
-                    </p>
+                  <div className="glass-tight p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Email</p>
+                    <p className="mt-1 text-zinc-200">{user.email || 'Not set'}</p>
                   </div>
-                  
-                  <div className="p-4 bg-theme-surface rounded-lg">
-                    <label className="text-xs uppercase text-theme-secondary-text font-semibold tracking-wider mb-2 block">
-                      Account Created
-                    </label>
-                    <p className="text-theme-primary-text text-sm">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                  <div className="glass-tight p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Created</p>
+                    <p className="mt-1 text-zinc-400">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
                 </div>
-                
-                {/* Logout Button */}
-                <div className="pt-4 border-t border-theme-accent">
+
+                <div className="border-t border-white/[0.08] pt-4">
                   <button
+                    type="button"
                     onClick={async () => {
                       await handleLogout();
                       setShowProfile(false);
                     }}
-                    className="w-full flex items-center justify-center gap-3 p-3 text-red-500 hover:bg-red-500/10 rounded-lg transition"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 py-2.5 text-sm text-red-400 transition hover:bg-red-500/10"
                   >
                     <FiLogOut size={18} />
-                    <span>Logout</span>
+                    Log out
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-theme-secondary-text">User information not available</p>
-              </div>
+              <div className="py-8 text-center text-sm text-zinc-500">No user data</div>
             )}
           </div>
         </div>

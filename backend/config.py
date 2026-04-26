@@ -9,9 +9,9 @@ load_dotenv()
 class Config:
     """Application configuration."""
     
-    # Flask Configuration
+    # Shared secret (JWT default; env may still be FLASK_SECRET_KEY for older .env files)
     FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "serenova-ai-secret-key-2024")
-    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"
+    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"  # also drives uvicorn --reload
     HOST = os.getenv("HOST", "127.0.0.1")
     PORT = int(os.getenv("PORT", "5000"))
     
@@ -36,4 +36,14 @@ class Config:
     
     # Logging Configuration
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+    # Multi-agent / LangGraph: "langgraph" (default) or "legacy" (original AgenticChatService only)
+    ORCHESTRATION_MODE = os.getenv("ORCHESTRATION_MODE", "langgraph").lower().strip()
+
+    # RAG (Chroma persistent path, relative to backend or absolute)
+    CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "chroma_data")
+
+    # RAG / monitoring toggles
+    RAG_ENABLED = os.getenv("RAG_ENABLED", "true").lower() in ("1", "true", "yes")
+    CREW_ENABLED = os.getenv("CREW_ENABLED", "true").lower() in ("1", "true", "yes")
 

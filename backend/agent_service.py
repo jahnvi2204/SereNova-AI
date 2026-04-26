@@ -30,6 +30,7 @@ import google.generativeai as genai
 from google.generativeai.types import GenerateContentResponse
 
 from config import Config
+from gemini_service import gemini_service
 
 # ─────────────────────────────────────────────
 # Logging
@@ -41,6 +42,52 @@ logging.addLevelName(_TRACE, "TRACE")
 
 def _trace(msg: str, *args: Any) -> None:  # noqa: D401
     logger.log(_TRACE, msg, *args)
+
+
+def _extract_gemini_text(resp: Any) -> str:
+    """
+    Read assistant text from GenerateContentResponse without raising.
+    Accessing .text can throw when the response is blocked or malformed.
+    """
+    if resp is None:
+        return ""
+    try:
+        t = (resp.text or "").strip()
+        if t:
+            return t
+    except Exception as exc:
+        logger.debug("Gemini resp.text unavailable: %s", exc)
+    try:
+        cands = getattr(resp, "candidates", None) or []
+        if not cands:
+            return ""
+        content = getattr(cands[0], "content", None)
+        parts = getattr(content, "parts", None) if content else None
+        if not parts:
+            return ""
+        chunks: List[str] = []
+        for part in parts:
+            tx = getattr(part, "text", None)
+            if tx:
+                chunks.append(tx)
+        return " ".join(chunks).strip()
+    except Exception as exc:
+        logger.debug("Gemini candidate parse failed: %s", exc)
+    return ""
+
+
+def _is_degraded_agent_text(text: Optional[str]) -> bool:
+    """True if the model returned an error/boilerplate reply instead of real support."""
+    if not text or not str(text).strip():
+        return True
+    low = text.lower()
+    return any(
+        s in low
+        for s in (
+            "something went wrong on my end",
+            "technical difficulty right now",
+        )
+    )
 
 
 # ─────────────────────────────────────────────
@@ -333,6 +380,17 @@ _CRISIS_LEVEL_KEYWORDS: Dict[CrisisLevel, List[str]] = {
 }
 
 
+def assess_crisis_text(text: str) -> int:
+    """Return crisis level 0 (none) through 4 (imminent) for LangGraph / guardrails."""
+    lower = (text or "").lower()
+    for level in sorted(CrisisLevel, reverse=True):
+        if level == CrisisLevel.NONE:
+            continue
+        if any(kw in lower for kw in _CRISIS_LEVEL_KEYWORDS.get(level, [])):
+            return int(level)
+    return 0
+
+
 # ─────────────────────────────────────────────
 # Utility Decorators
 # ─────────────────────────────────────────────
@@ -491,11 +549,11 @@ class AgenticChatService:
             f"Message: {user_input[:400]}"
         )
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             resp: GenerateContentResponse = await loop.run_in_executor(
                 None, lambda: model.generate_content(prompt)
             )
-            raw = (resp.text or "").strip().lower()
+            raw = _extract_gemini_text(resp).lower()
             intent = Intent(raw) if raw in Intent._value2member_map_ else Intent.GENERAL
             self._intent_cache[user_input] = (intent, time.monotonic())
             return intent
@@ -574,9 +632,9 @@ class AgenticChatService:
             "Reasoning (internal, not for user):"
         )
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             resp = await loop.run_in_executor(None, lambda: model.generate_content(prompt))
-            return (resp.text or "").strip()[:600]
+            return _extract_gemini_text(resp)[:600]
         except Exception as exc:
             logger.warning("CoT reasoning failed: %s", exc)
             return "Reasoning unavailable."
@@ -598,9 +656,9 @@ class AgenticChatService:
             f"{turns_text}"
         )
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             resp = await loop.run_in_executor(None, lambda: model.generate_content(prompt))
-            summary = (resp.text or "").strip()
+            summary = _extract_gemini_text(resp)
             if summary:
                 self._memory.compress(summary)
                 logger.info("Memory compressed for session %s.", self.session_id)
@@ -617,6 +675,8 @@ class AgenticChatService:
         crisis_level: CrisisLevel,
         reasoning: str,
         intent: Intent,
+        retrieval_context: str = "",
+        crew_notes: str = "",
     ) -> Tuple[str, str]:
         """Returns (response_text, model_name_used)."""
 
@@ -660,9 +720,23 @@ class AgenticChatService:
                 "and suggest professional support without alarming the user.\n"
             )
 
+        rag_block = ""
+        if (retrieval_context or "").strip():
+            rag_block = (
+                f"Relevant past conversation (retrieved for continuity; do not contradict—use only if it fits):\n"
+                f"{retrieval_context.strip()}\n\n"
+            )
+        crew_block = ""
+        if (crew_notes or "").strip():
+            crew_block = (
+                "Structured multi-agent notes (emotion/CBT; integrate lightly, do not read aloud as a list):\n"
+                f"{crew_notes.strip()}\n\n"
+            )
+
         prompt = (
             f"{system_persona}"
             f"{crisis_instruction}"
+            f"{rag_block}{crew_block}"
             "Guidelines:\n"
             "  • Warm, plain language; avoid clinical jargon.\n"
             "  • 2–4 paragraphs max; no bullet lists in the reply itself.\n"
@@ -681,12 +755,12 @@ class AgenticChatService:
         last_exc: Optional[Exception] = None
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 resp: GenerateContentResponse = await asyncio.wait_for(
                     loop.run_in_executor(None, lambda: model.generate_content(prompt)),
                     timeout=_GENERATION_TIMEOUT,
                 )
-                text = (resp.text or "").strip()
+                text = _extract_gemini_text(resp)
                 if not text:
                     raise ValueError("Empty model response on attempt %d" % attempt)
                 return text, self._active_model_name or "unknown"
@@ -779,6 +853,7 @@ class AgenticChatService:
         self._spans.append(s4)
 
         # 6. Response generation
+        extra = extra_context or {}
         s5 = AgentSpan(name="response_generation")
         response_text, model_used = await self._generate_response(
             user_input=user_input,
@@ -787,6 +862,8 @@ class AgenticChatService:
             crisis_level=crisis_level,
             reasoning=reasoning,
             intent=intent,
+            retrieval_context=str(extra.get("retrieval_context", "") or ""),
+            crew_notes=str(extra.get("crew_notes", "") or ""),
         )
         s5.finish(model=model_used, tokens_approx=len(response_text.split()))
         self._spans.append(s5)
@@ -833,20 +910,25 @@ class AgenticChatService:
                     self._memory.add(Turn(role="assistant", content=resp))
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Inside an existing event loop (e.g. FastAPI, Jupyter)
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(
-                        asyncio.run,
-                        self.agenerate(user_input, extra_context),
-                    )
-                    result: AgentResponse = future.result(timeout=_GENERATION_TIMEOUT + 5)
-            else:
-                result = loop.run_until_complete(
+            # Flask/Werkzeug runs each request in a worker thread with no event loop.
+            # asyncio.get_event_loop() raises there on Python 3.10+; use asyncio.run() instead.
+            try:
+                result: AgentResponse = asyncio.run(
                     self.agenerate(user_input, extra_context)
                 )
+            except RuntimeError as rexc:
+                if "cannot be called from a running event loop" in str(rexc).lower():
+                    # e.g. sync caller already inside a running loop (Jupyter, nested async)
+                    import concurrent.futures
+
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        future = pool.submit(
+                            asyncio.run,
+                            self.agenerate(user_input, extra_context),
+                        )
+                        result = future.result(timeout=_GENERATION_TIMEOUT + 60)
+                else:
+                    raise
         except Exception as exc:
             logger.error("Sync shim failed: %s", exc)
             return {
@@ -871,27 +953,104 @@ class AgenticChatService:
     ) -> Dict[str, Any]:
         """
         Route-compatible wrapper expected by existing Flask handlers.
-        Keeps advanced pipeline while returning the lightweight response schema.
+        When ORCHESTRATION_MODE=langgraph, runs the LangGraph + Crew + RAG pipeline; otherwise
+        the in-class AgenticChatService (legacy). Always applies a direct Gemini pass if
+        the primary reply is missing or a known error boilerplate.
         """
-        result = self.generate(
-            user_input=user_input,
-            history=history,
-            extra_context=extra_context,
-        )
-        return {
-            "intent": result.get("intent", "general"),
-            "response": result.get("response", ""),
-            "confidence": result.get("confidence", 0.0),
-            "agent": {
-                "session_id": result.get("session_id"),
-                "crisis_level": result.get("crisis_level", 0),
-                "tools_used": result.get("tools_used", []),
-                "reasoning_summary": result.get("reasoning_summary", ""),
-                "model_used": result.get("model_used"),
-                "spans": result.get("spans", []),
-                "generated_at": result.get("generated_at"),
-            },
-        }
+        if Config.ORCHESTRATION_MODE == "langgraph":
+            try:
+                from orchestration.orchestrator_service import run_langgraph_pipeline
+
+                result = run_langgraph_pipeline(
+                    user_input, history, extra_context
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "LangGraph orchestration failed, using legacy agent: %s",
+                    exc,
+                    exc_info=True,
+                )
+                result = self.generate(
+                    user_input=user_input,
+                    history=history,
+                    extra_context=extra_context,
+                )
+        else:
+            result = self.generate(
+                user_input=user_input,
+                history=history,
+                extra_context=extra_context,
+            )
+
+        return apply_degraded_gemini_fallback(result, user_input)
+
+
+def apply_degraded_gemini_fallback(
+    result: Dict[str, Any],
+    user_input: str,
+    extra_agent: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Public helper: maps flat AgentResponse-style dicts to the API schema and
+    applies direct Gemini if the main reply is missing or known-degraded.
+    Merges optional result[\"orchestration_meta\"] into the response agent payload.
+    """
+    om = result.get("orchestration_meta")
+    if isinstance(om, dict):
+        merged: Dict[str, Any] = {**(extra_agent or {}), **om}
+    else:
+        merged = dict(extra_agent or {})
+    response_text = (result.get("response") or "").strip()
+    agent_err: Optional[str] = None
+    a = result.get("agent")
+    if isinstance(a, dict):
+        agent_err = a.get("error")  # type: ignore[assignment]
+
+    if _is_degraded_agent_text(response_text) or agent_err:
+        try:
+            fb = gemini_service.generate_mental_health_response(user_input)
+            fb_text = (fb.get("response") or "").strip()
+            if fb_text and fb.get("intent") != "error":
+                logger.info("Using gemini_service fallback after agent degraded/error.")
+                merge = {
+                    "session_id": result.get("session_id"),
+                    "crisis_level": result.get("crisis_level", 0),
+                    "tools_used": result.get("tools_used", []),
+                    "reasoning_summary": result.get("reasoning_summary", ""),
+                    "model_used": result.get("model_used"),
+                    "spans": result.get("spans", []),
+                    "generated_at": result.get("generated_at"),
+                    "fallback": "gemini_direct",
+                    "prior_error": str(agent_err) if agent_err else None,
+                }
+                if merged:
+                    merge.update(merged)
+                return {
+                    "intent": fb.get("intent", "mental_health_support"),
+                    "response": fb_text,
+                    "confidence": float(fb.get("confidence", 0.85)),
+                    "agent": merge,
+                }
+        except Exception as exc:
+            logger.warning("gemini_service fallback failed: %s", exc)
+
+    ag = {
+        "session_id": result.get("session_id"),
+        "crisis_level": result.get("crisis_level", 0),
+        "tools_used": result.get("tools_used", []),
+        "reasoning_summary": result.get("reasoning_summary", ""),
+        "model_used": result.get("model_used"),
+        "spans": result.get("spans", []),
+        "generated_at": result.get("generated_at"),
+    }
+    if merged:
+        ag.update(merged)
+    return {
+        "intent": result.get("intent", "general"),
+        "response": result.get("response", ""),
+        "confidence": result.get("confidence", 0.0),
+        "agent": ag,
+    }
 
 
 # ─────────────────────────────────────────────

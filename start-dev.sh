@@ -5,7 +5,7 @@ echo "Starting SeraNova AI Development Servers"
 echo "========================================"
 echo ""
 
-echo "[1/2] Starting Flask Backend..."
+echo "[1/2] Starting FastAPI backend (Uvicorn)..."
 cd backend
 python server.py &
 BACKEND_PID=$!

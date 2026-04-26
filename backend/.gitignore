@@ -1,6 +1,8 @@
 # Python virtual environment
 venv/
 .env/
+# Chroma RAG store (local)
+chroma_data/
 
 # Python cache
 __pycache__/

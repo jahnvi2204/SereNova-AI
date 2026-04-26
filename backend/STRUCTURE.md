@@ -6,33 +6,32 @@ This document describes the modular structure of the SeraNova AI backend.
 
 ```
 backend/
-├── server.py              # Main Flask application entry point
+├── server.py              # Re-exports FastAPI `app`, runs Uvicorn in __main__
+├── fastapi_server.py     # All REST routes, CORS, health, timing middleware
 ├── config.py              # Configuration and environment variables
 ├── database.py            # MongoDB connection and initialization
 ├── auth.py                # Authentication helpers (password hashing, JWT)
 ├── gemini_service.py      # Gemini AI service integration
-├── utils.py               # Utility functions (ObjectId conversions)
+├── agent_service.py       # Multi-step mental-health agent + LangGraph handoff
 ├── requirements.txt       # Python dependencies
-└── routes/                # Route blueprints
-    ├── __init__.py
-    ├── auth_routes.py     # Authentication endpoints
-    └── chat_routes.py     # Chat and session management endpoints
+└── (other packages: orchestration/, rag/, observability/ …)
 ```
 
 ## Module Descriptions
 
 ### `server.py`
-- Main Flask application entry point
-- Registers blueprints from routes
-- Configures CORS
-- Defines health check and error handlers
-- Starts the Flask development server
+- Imports the FastAPI `app` from `fastapi_server` (ASGI) for Gunicorn (`-k uvicorn.workers.UvicornWorker`)
+- In `__main__`, runs `uvicorn` for local development (reload follows `FLASK_DEBUG`)
+
+### `fastapi_server.py`
+- Defines the FastAPI application: auth, chat, sessions, playlists, home, health
+- CORS, request timing header (`X-Request-Duration-Ms`)
 
 ### `config.py`
 - Centralized configuration management
 - Loads environment variables from `.env`
 - Provides `Config` class with all application settings:
-  - Flask configuration (secret key, host, port)
+  - App secret (legacy env `FLASK_SECRET_KEY`), host, port, debug
   - MongoDB connection settings
   - JWT configuration
   - Gemini API configuration
@@ -63,30 +62,17 @@ backend/
 - `object_id_to_str()` - Converts MongoDB ObjectId to string
 - `str_to_object_id()` - Converts string to ObjectId (with validation)
 
-### `routes/auth_routes.py`
-Authentication endpoints (Blueprint: `/auth`):
-- `POST /auth/signup` - User registration
-- `POST /auth/login` - User authentication
-- `GET /auth/verify` - Token verification
-- `POST /auth/logout` - Logout (client-side token removal)
-
-### `routes/chat_routes.py`
-Chat and session management endpoints (Blueprint: `/chat`):
-- `POST /chat/predict` - Generate AI response (authenticated)
-- `POST /chat/predict-public` - Generate AI response (public, no auth)
-- `GET /chat/sessions` - Get all user sessions
-- `POST /chat/sessions` - Create new session
-- `GET /chat/sessions/<session_id>/messages` - Get session messages
-- `POST /chat/sessions/<session_id>/messages` - Add message to session
-- `DELETE /chat/sessions/<session_id>` - Delete session
+### `fastapi_server.py` (API routes, prefix `/auth` and `/chat`)
+- `POST /auth/signup`, `POST /auth/login`, `GET /auth/verify`, `POST /auth/logout`
+- `POST /chat/predict`, `POST /chat/predict-public`, session CRUD, messages, agent, playlists
 
 ## Benefits of This Structure
 
 1. **Separation of Concerns**: Each module has a single, well-defined responsibility
 2. **Maintainability**: Easy to locate and modify specific functionality
 3. **Testability**: Each module can be tested independently
-4. **Scalability**: Easy to add new routes, services, or utilities
-5. **Reusability**: Utility functions and services can be reused across routes
+4. **Scalability**: Easy to add new routes or services in `fastapi_server` or new modules
+5. **Reusability**: Utility functions and services are shared across the API
 6. **Configuration Management**: Centralized configuration makes environment management easier
 
 ## Running the Application

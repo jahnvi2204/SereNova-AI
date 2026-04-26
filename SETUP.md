@@ -1,6 +1,6 @@
 # SeraNova AI – Gemini Mental Health Chatbot Setup
 
-## Backend Setup (Flask + Gemini)
+## Backend Setup (FastAPI + Gemini)
 
 1. Open a terminal in the project root:
    ```bash
@@ -59,7 +59,7 @@
 
 ## Tech Stack
 
-- **Backend**: Flask + Google Gemini + MongoDB + JWT + bcrypt
+- **Backend**: FastAPI (Uvicorn) + Google Gemini + MongoDB + JWT + bcrypt
 
 - **Frontend**: React + Tailwind CSS + React Router
 
@@ -124,7 +124,7 @@
 - **Chat (/chat)**: Full chat interface with sessions (requires auth)
 
 ## 🛠️ Tech Stack
-- **Backend**: Flask + Google Gemini + MongoDB + JWT + bcrypt
+- **Backend**: FastAPI (Uvicorn) + Google Gemini + MongoDB + JWT + bcrypt
 
 - **Frontend**: React + Tailwind CSS + React Router
 - **API**: RESTful endpoints with proper authentication

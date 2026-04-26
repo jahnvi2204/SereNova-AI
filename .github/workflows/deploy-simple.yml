@@ -33,14 +33,14 @@ jobs:
       
       - name: Build React app
         working-directory: ./frontend
-       run: npm run build
+        run: npm run build
         env:
           CI: false
           REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL || 'http://localhost:5000' }}
 
   # Test Backend
   test-backend:
-    name: Test Flask Backend
+    name: Test FastAPI Backend
     runs-on: ubuntu-latest
     
     steps:
@@ -64,6 +64,7 @@ jobs:
         working-directory: ./backend
         run: |
           python -m py_compile server.py
+          python -m py_compile fastapi_server.py
           python -m py_compile config.py
           python -m py_compile database.py
 

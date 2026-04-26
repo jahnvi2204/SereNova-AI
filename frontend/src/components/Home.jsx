@@ -1,56 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, MessageSquare, Shield, BrainCircuit, Sparkles, ArrowRight, User, Send } from "lucide-react";
-import Navbar from "./Navbar"; 
+import { MessageSquare, Shield, ArrowRight, User, Send, Activity, Layers, Lock } from "lucide-react";
+import Navbar from "./Navbar";
 import { chatAPI, authAPI } from '../api/api';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState(false);
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [previewMessage, setPreviewMessage] = useState('');
   const [previewChat, setPreviewChat] = useState([
-    { text: "Hello! I'm SeraNova, your personal mental health companion. How are you feeling today?", isUser: false }
+    { text: "I'm here to listen. What's on your mind today?", isUser: false }
   ]);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  
-  // Redirect logged-in users to chat page
+
   useEffect(() => {
     if (authAPI.isAuthenticated()) {
       navigate('/chat');
     }
   }, [navigate]);
-  
-  const testimonials = [
-    {
-      quote: "SeraNova has become my daily companion for managing anxiety. It's like having a therapist in my pocket.",
-      author: "Sarah M."
-    },
-    {
-      quote: "The guided meditations and personalized exercises have made such a difference in my mental well-being.",
-      author: "Michael L."
-    },
-    {
-      quote: "As someone who struggles with opening up, SeraNova provided the perfect space to explore my thoughts.",
-      author: "Jamie K."
-    }
-  ];
-  
+
   useEffect(() => {
     setLoaded(true);
-    
-    const testimonialInterval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 6000);
-    
-    return () => clearInterval(testimonialInterval);
-  }, [testimonials.length]);
+  }, []);
 
   const handlePreviewSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!previewMessage.trim()) return;
 
-    // Add user message
     setPreviewChat(prev => [...prev, { text: previewMessage, isUser: true }]);
     const currentMessage = previewMessage;
     setPreviewMessage('');
@@ -58,325 +34,251 @@ const HomePage = () => {
 
     try {
       const responseData = await chatAPI.sendMessagePublic(currentMessage.trim());
-
-      setPreviewChat(prev => [...prev, { 
-        text: responseData.response, 
-        isUser: false, 
-        intent: responseData.intent 
+      setPreviewChat(prev => [...prev, {
+        text: responseData.response,
+        isUser: false,
+        intent: responseData.intent
       }]);
     } catch (error) {
       console.error('Error:', error);
-      setPreviewChat(prev => [...prev, { 
-        text: "Sorry, I'm having trouble connecting. Try the full chat interface!", 
-        isUser: false 
+      setPreviewChat(prev => [...prev, {
+        text: "Connection issue. Open the full app to continue.",
+        isUser: false
       }]);
     } finally {
       setIsPreviewLoading(false);
     }
   };
 
-  const benefits = [
-    {
-      icon: <Heart className="h-6 w-6 text-theme-highlight" />,
-      title: "Compassionate Support",
-      description: "Experience empathetic conversation designed to provide emotional relief and understanding"
-    },
-    {
-      icon: <BrainCircuit className="h-6 w-6 text-theme-highlight" />,
-      title: "AI-Powered Insights",
-      description: "Receive personalized therapeutic guidance based on your unique emotional patterns"
-    },
-    {
-      icon: <Shield className="h-6 w-6 text-theme-highlight" />,
-      title: "Private & Secure",
-      description: "Your conversations are confidential and protected with advanced encryption"
-    },
-    {
-      icon: <MessageSquare className="h-6 w-6 text-theme-highlight" />,
-      title: "Available 24/7",
-      description: "Access support whenever you need it, day or night, without waiting for appointments"
-    }
-  ];
+  const partners = ['Vercel', 'Linear', 'Notion', 'Stripe', 'Raycast', 'Figma'];
 
   return (
-    <div className="min-h-screen bg-theme-background flex flex-col relative overflow-hidden">
-      {/* Animated Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-theme-accent/20 to-theme-highlight/10 animate-gradient-x"></div>
-
-      {/* Include the Navbar component */}
+    <div className="app-mesh">
+      <div className="mesh-grid" />
       <Navbar />
 
-      <main className="flex-grow container mx-auto px-4 pt-24 pb-12 z-10 flex flex-col items-center justify-center">
-        <div className="w-full max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left Side - Hero Content */}
-            <div className={`transform transition-all duration-1000 ${loaded ? 'translate-x-0 opacity-100' : '-translate-x-12 opacity-0'}`}>
-              <div className="flex items-center mb-4">
-                <div className="relative">
-                  <Heart className="h-8 w-8 text-theme-highlight" />
-                  <span className="absolute -top-1 -right-1">
-                    <Sparkles className="h-4 w-4 text-yellow-400" />
-                  </span>
-                </div>
-                <h1 className="text-3xl font-bold ml-3 text-theme-primary-text">SeraNova AI</h1>
-              </div>
-              
-              <h2 className="text-4xl md:text-5xl font-bold text-theme-primary-text mt-6 mb-6 leading-tight">
-                Your Personal <span className="text-theme-highlight">Mental Health</span> Companion
-              </h2>
-              
-              <p className="text-xl text-theme-primary-text mb-8 max-w-xl">
-                Experience compassionate AI-powered therapy that adapts to your unique emotional needs. Begin your journey toward better mental wellbeing today.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <a href="/chat">
-                  <button  className="relative group bg-theme-highlight hover:bg-theme-highlight/90 text-theme-background px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 hover:shadow-lg hover:shadow-theme-highlight/30 overflow-hidden">
-                    {/* Button Shine Effect */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500 bg-gradient-to-r from-white/30 via-white/10 to-white/30 w-[200%] animate-shine"></div>
-                    
-                    <span className="relative z-10">Start Your Session</span>
-                    <ArrowRight className="ml-2 h-5 w-5 relative z-10" />
-                  </button>
-                </a>
-                
-                <a href="#learn-more">
-                  <button className="px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 border border-theme-accent text-theme-highlight hover:bg-theme-accent hover:text-theme-primary-text">
-                    Learn How It Works
-                  </button>
-                </a>
-              </div>
-              
-              <div className="mt-12">
-                <div className="flex items-center space-x-4 mb-2">
-                  <div className="flex -space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-theme-accent flex items-center justify-center text-xs font-medium text-theme-primary-text shadow-lg">SM</div>
-                    <div className="w-8 h-8 rounded-full bg-theme-highlight flex items-center justify-center text-xs font-medium text-theme-background shadow-lg">ML</div>
-                    <div className="w-8 h-8 rounded-full bg-theme-accent/80 flex items-center justify-center text-xs font-medium text-theme-primary-text shadow-lg">JK</div>
-                    <div className="w-8 h-8 rounded-full bg-theme-accent/50 flex items-center justify-center text-xs font-medium text-theme-primary-text shadow-lg">
-                      <span>+</span>
-                    </div>
-                  </div>
-                  <p className="text-theme-secondary-text text-sm">Join thousands finding peace of mind</p>
-                </div>
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-20 pt-28 md:pt-32">
+        <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-10">
+          <div className={`transition duration-1000 ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-zinc-300 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
+              Calm, structured support
+            </div>
+
+            <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight text-zinc-50 sm:text-5xl lg:text-[3.25rem]">
+              One place for
+              <span className="block bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
+                thoughtful conversation
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-zinc-400 sm:text-lg">
+              A focused interface for reflection and support—no clutter, no noise. Private sessions, clear structure, and responses tuned for emotional clarity.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a href="/chat" className="btn-primary shadow-glow">
+                Open app
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <a href="#interface" className="btn-ghost">
+                How it works
+              </a>
+            </div>
+
+            {/* Decorative node network – abstract, not data */}
+            <div className="relative mt-16 hidden h-32 sm:block">
+              <svg className="absolute left-0 top-0 h-full w-full text-white/20" viewBox="0 0 400 120" fill="none" aria-hidden>
+                <path d="M40 60 L120 30 L200 70 L280 40 L360 60" stroke="currentColor" strokeWidth="0.5" />
+                <circle cx="40" cy="60" r="3" className="fill-emerald-400/40" />
+                <circle cx="120" cy="30" r="3" className="fill-white/30" />
+                <circle cx="200" cy="70" r="3" className="fill-indigo-400/40" />
+                <circle cx="280" cy="40" r="3" className="fill-white/25" />
+                <circle cx="360" cy="60" r="3" className="fill-emerald-400/30" />
+              </svg>
+              <div className="absolute bottom-0 left-0 flex gap-6 text-[10px] font-medium uppercase tracking-widest text-zinc-600">
+                <span>Clarity</span>
+                <span>Continuity</span>
+                <span>Privacy</span>
               </div>
             </div>
-            
-            {/* Right Side - Preview */}
-            <div className={`transform transition-all duration-1000 delay-300 ${loaded ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}>
-              <div className="relative">
-                {/* Glowing effects */}
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-theme-highlight/20 rounded-full blur-xl animate-float"></div>
-                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-theme-accent/20 rounded-full blur-xl animate-float-delayed"></div>
-                
-                <div className="bg-theme-surface/90 backdrop-blur-lg rounded-2xl border border-theme-accent/50 shadow-xl overflow-hidden w-full max-w-md mx-auto">
-                  {/* Chat preview header */}
-                  <div className="p-4 bg-theme-surface border-b border-theme-accent flex items-center">
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
-                        <Heart className="h-6 w-6 text-theme-highlight" />
-                        <span className="absolute -top-1 -right-1">
-                          <Sparkles className="h-3 w-3 text-yellow-400" />
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-medium text-theme-primary-text">SeraNova Assistant</h3>
-                    </div>
-                    <div className="ml-auto flex items-center space-x-1">
-                      <span className="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
-                      <span className="text-xs text-green-400">Online</span>
-                    </div>
+          </div>
+
+          <div className={`relative transition delay-200 duration-1000 ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}>
+            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-emerald-500/10 via-transparent to-indigo-500/10 blur-2xl" />
+            <div className="glass relative overflow-hidden p-0">
+              <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.06] ring-1 ring-white/10">
+                    <MessageSquare className="h-4 w-4 text-zinc-200" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-100">Session</p>
+                    <p className="text-xs text-zinc-500">Preview</p>
                   </div>
-                  
-                  {/* Chat preview content */}
-                  <div className="p-5 h-80 flex flex-col bg-gradient-to-b from-theme-surface to-theme-background">
-                    <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                      {previewChat.map((message, index) => (
-                        <div key={index} className={`flex items-start ${message.isUser ? 'justify-end' : ''}`}>
-                          {!message.isUser && (
-                            <div className="flex-shrink-0 bg-theme-highlight rounded-full p-2">
-                              <MessageSquare className="h-4 w-4 text-theme-background" />
-                            </div>
-                          )}
-                          <div className={`ml-3 ${message.isUser ? 'mr-3 ml-0' : ''} rounded-lg py-2 px-3 text-sm max-w-xs ${
-                            message.isUser ? 'bg-theme-accent/30 text-theme-primary-text' : 'bg-theme-surface text-theme-primary-text'
-                          }`}>
-                            <p className="text-theme-primary-text">{message.text}</p>
-                          </div>
-                          {message.isUser && (
-                            <div className="flex-shrink-0 bg-theme-accent rounded-full p-2">
-                              <User className="h-4 w-4 text-theme-primary-text" />
-                            </div>
-                          )}
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                  Live
+                </span>
+              </div>
+
+              <div className="flex h-[22rem] flex-col bg-gradient-to-b from-white/[0.02] to-transparent p-4 sm:p-5">
+                <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                  {previewChat.map((message, index) => (
+                    <div key={index} className={`flex items-end gap-2.5 ${message.isUser ? 'flex-row-reverse' : ''}`}>
+                      {!message.isUser && (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-white/10">
+                          <MessageSquare className="h-3.5 w-3.5 text-zinc-300" />
                         </div>
-                      ))}
-                      
-                      {/* Loading indicator */}
-                          {isPreviewLoading && (
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0 bg-theme-highlight rounded-full p-2">
-                            <MessageSquare className="h-4 w-4 text-theme-background" />
-                          </div>
-                          <div className="ml-3 bg-theme-surface rounded-lg py-2 px-3 text-sm max-w-xs text-theme-primary-text">
-                            <div className="flex space-x-1">
-                              <div className="w-2 h-2 rounded-full bg-theme-highlight animate-bounce"></div>
-                              <div className="w-2 h-2 rounded-full bg-theme-highlight animate-bounce delay-75"></div>
-                              <div className="w-2 h-2 rounded-full bg-theme-highlight animate-bounce delay-150"></div>
-                            </div>
-                          </div>
+                      )}
+                      <div
+                        className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                          message.isUser
+                            ? 'bg-white text-zinc-900'
+                            : 'border border-white/[0.06] bg-white/[0.04] text-zinc-200'
+                        }`}
+                      >
+                        {message.text}
+                      </div>
+                      {message.isUser && (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-zinc-700/80">
+                          <User className="h-3.5 w-3.5 text-zinc-200" />
                         </div>
                       )}
                     </div>
-                    
-                    {/* Chat input */}
-                    <div className="mt-auto">
-                      <form onSubmit={handlePreviewSubmit} className="relative">
-                        <input
-                          type="text"
-                          value={previewMessage}
-                          onChange={(e) => setPreviewMessage(e.target.value)}
-                          placeholder="Share what's on your mind..."
-                          className="w-full bg-theme-surface border border-theme-accent rounded-lg py-3 pl-4 pr-10 text-theme-primary-text placeholder:text-theme-secondary-text focus:outline-none focus:ring-2 focus:ring-theme-highlight"
-                          style={{ color: '#E0E6F3' }}
-                          disabled={isPreviewLoading}
-                        />
-                        <button 
-                          type="submit"
-                          disabled={isPreviewLoading || !previewMessage.trim()}
-                          className="absolute right-2 top-2 text-theme-highlight p-1 rounded-full hover:bg-theme-accent disabled:opacity-50"
-                        >
-                          <Send className="h-5 w-5" />
-                        </button>
-                      </form>
-                      <p className="text-xs text-theme-secondary-text mt-2 text-center">
-                        Try me out! For the full experience, <a href="/chat" className="text-theme-highlight hover:text-theme-highlight/80">start a session</a>
-                      </p>
+                  ))}
+                  {isPreviewLoading && (
+                    <div className="flex items-end gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
+                        <MessageSquare className="h-3.5 w-3.5 text-zinc-300" />
+                      </div>
+                      <div className="flex gap-1 rounded-2xl border border-white/[0.06] bg-white/[0.04] px-4 py-3">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:0.1s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:0.2s]" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Benefits Section */}
-          <div id="learn-more" className={`mt-24 transform transition-all duration-1000 delay-500 ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
-            <h3 className="text-2xl font-bold text-center text-theme-primary-text mb-12">How SeraNova Helps Your Mental Wellbeing</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {benefits.map((benefit, index) => (
-                <div 
-                  key={index} 
-                  className="bg-theme-surface/50 backdrop-blur-sm border border-theme-accent/50 rounded-xl p-6 transition-all duration-300 hover:transform hover:scale-105 hover:bg-theme-surface/80 hover:border-theme-highlight/30"
-                >
-                  <div className="bg-theme-accent/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                    {benefit.icon}
-                  </div>
-                  <h4 className="text-lg font-semibold text-theme-primary-text mb-2">{benefit.title}</h4>
-                  <p className="text-theme-primary-text text-sm">{benefit.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Testimonial Section */}
-          <div className={`mt-24 mb-12 transform transition-all duration-1000 delay-700 ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
-            <div className="max-w-3xl mx-auto bg-gradient-to-br from-theme-accent/20 to-theme-surface/20 backdrop-blur-md rounded-2xl p-8 border border-theme-accent/30">
-              <div className="relative">
-                <svg className="absolute top-0 left-0 w-10 h-10 text-theme-highlight/50 transform -translate-x-6 -translate-y-6" fill="currentColor" viewBox="0 0 32 32">
-                  <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"></path>
-                </svg>
-                
-                <div className="relative h-32">
-                  {testimonials.map((testimonial, index) => (
-                    <div 
-                      key={index} 
-                      className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-                        currentTestimonial === index 
-                          ? 'opacity-100 translate-x-0' 
-                          : 'opacity-0 translate-x-12'
-                      }`}
+
+                <form onSubmit={handlePreviewSubmit} className="mt-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={previewMessage}
+                      onChange={(e) => setPreviewMessage(e.target.value)}
+                      placeholder="Write a message…"
+                      disabled={isPreviewLoading}
+                      className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-4 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/10"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isPreviewLoading || !previewMessage.trim()}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-2 text-zinc-300 transition hover:bg-white/5 disabled:opacity-40"
                     >
-                      <p className="text-theme-primary-text text-lg italic">{testimonial.quote}</p>
-                      <p className="text-theme-highlight font-medium mt-4">— {testimonial.author}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="flex justify-center mt-6 space-x-2">
-                  {testimonials.map((_, index) => (
-                    <button 
-                      key={index}
-                      onClick={() => setCurrentTestimonial(index)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        currentTestimonial === index ? 'bg-theme-highlight w-6' : 'bg-theme-accent'
-                      }`}
-                      aria-label={`View testimonial ${index + 1}`}
-                    ></button>
-                  ))}
-                </div>
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-2 text-center text-xs text-zinc-500">
+                    <a href="/chat" className="text-zinc-300 underline-offset-2 hover:underline">Full experience</a>
+                    {' · '}
+                    Private by design
+                  </p>
+                </form>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Bento / insights – visual rhythm like reference, no fake metrics */}
+        <section id="interface" className="mt-24 md:mt-32">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Interface</p>
+          <h2 className="mx-auto mt-3 max-w-2xl text-center text-2xl font-semibold text-zinc-100 sm:text-3xl">
+            Built for focus
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm text-zinc-500">
+            A calm layout, glass surfaces, and clear hierarchy—so the product feels intentional, not templated.
+          </p>
+
+          <div className="mt-12 grid gap-4 md:grid-cols-3 lg:grid-cols-4 lg:grid-rows-2">
+            <div className="glass row-span-2 flex flex-col justify-between p-6 md:col-span-2 lg:col-span-2">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-lg bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                  <Activity className="h-3 w-3" />
+                  State
+                </div>
+                <h3 className="text-lg font-medium text-zinc-100">Session continuity</h3>
+                <p className="mt-2 text-sm text-zinc-500">Threads stay organized. Switch context without losing the narrative.</p>
+              </div>
+              <div className="mt-8 flex h-24 items-end gap-1.5">
+                {[40, 65, 45, 80, 55, 90, 50].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t-md bg-gradient-to-t from-emerald-500/20 to-emerald-400/40"
+                    style={{ height: `${h}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="glass flex flex-col p-6">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05]">
+                <Lock className="h-4 w-4 text-zinc-300" />
+              </div>
+              <h3 className="text-sm font-medium text-zinc-100">Confidentiality</h3>
+              <p className="mt-1 text-xs text-zinc-500">Conversations are treated with care and minimal surface area.</p>
+            </div>
+
+            <div className="glass flex flex-col p-6">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05]">
+                <Layers className="h-4 w-4 text-zinc-300" />
+              </div>
+              <h3 className="text-sm font-medium text-zinc-100">Layered UI</h3>
+              <p className="mt-1 text-xs text-zinc-500">Depth and blur to separate content from chrome.</p>
+            </div>
+
+            <div className="glass flex flex-col justify-between p-6 md:col-span-2 lg:col-span-2">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-zinc-100">Composed layout</h3>
+                  <p className="mt-1 text-xs text-zinc-500">Grid, spacing, and type tuned for long-form reading.</p>
+                </div>
+                <Shield className="h-5 w-5 shrink-0 text-zinc-500" />
+              </div>
+              <div className="mt-6 flex gap-2">
+                {['Read', 'Reflect', 'Respond'].map((t) => (
+                  <span key={t} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-medium text-zinc-400">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Wordmark row – stylistic, not claims */}
+        <div className="mt-20 border-t border-white/[0.06] pt-12">
+          <p className="text-center text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">Stack & craft</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-40 grayscale">
+            {partners.map((name) => (
+              <span key={name} className="text-sm font-semibold tracking-tight text-zinc-400">
+                {name}
+              </span>
+            ))}
           </div>
         </div>
       </main>
-      
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-theme-accent py-8 bg-theme-surface/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <Heart className="h-6 w-6 text-theme-highlight mr-2" />
-              <span className="text-theme-primary-text font-medium">SeraNova AI</span>
-            </div>
-            
-            <div className="text-theme-secondary-text text-sm">
-              © {new Date().getFullYear()} SeraNova AI. All rights reserved.
-            </div>
-            
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <button onClick={() => {}} className="text-theme-secondary-text hover:text-theme-highlight transition-colors cursor-pointer">Privacy</button>
-              <button onClick={() => {}} className="text-theme-secondary-text hover:text-theme-highlight transition-colors cursor-pointer">Terms</button>
-              <button onClick={() => {}} className="text-theme-secondary-text hover:text-theme-highlight transition-colors cursor-pointer">Support</button>
-            </div>
+
+      <footer className="relative z-10 border-t border-white/[0.06] py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-zinc-500 md:flex-row">
+          <span className="text-zinc-400">SereNova</span>
+          <span>© {new Date().getFullYear()}</span>
+          <div className="flex gap-6">
+            <span className="cursor-pointer transition hover:text-zinc-300">Privacy</span>
+            <span className="cursor-pointer transition hover:text-zinc-300">Terms</span>
           </div>
         </div>
       </footer>
-
-      {/* Add custom animations in CSS */}
-      <style>{`
-        @keyframes gradient-x {
-          0% { background-position: 0% 50% }
-          50% { background-position: 100% 50% }
-          100% { background-position: 0% 50% }
-        }
-        @keyframes shine {
-          from { transform: translateX(-100%) }
-          to { transform: translateX(100%) }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0) }
-          50% { transform: translateY(-10px) }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1 }
-          50% { opacity: 0.5 }
-        }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 15s ease infinite;
-        }
-        .animate-shine {
-          animation: shine 2s infinite;
-        }
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-          animation: float 5s ease-in-out infinite 1s;
-        }
-        .animate-pulse-slow {
-          animation: pulse 3s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 };

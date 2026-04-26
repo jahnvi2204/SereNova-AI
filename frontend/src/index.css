@@ -4,27 +4,57 @@
 
 @layer base {
   body {
-    @apply bg-theme-background;
+    @apply bg-theme-background text-theme-primary-text font-sans antialiased;
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color: #E0E6F3; /* Primary text color */
   }
 
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
   }
-  
-  /* Ensure all text elements have good contrast */
+
   h1, h2, h3, h4, h5, h6 {
-    color: #E0E6F3;
+    @apply text-theme-primary-text tracking-tight;
   }
-  
-  p, span, div {
-    color: inherit;
+}
+
+@layer components {
+  .app-mesh {
+    @apply min-h-screen bg-theme-background text-theme-primary-text relative;
+    background-image:
+      radial-gradient(ellipse 100% 60% at 50% -10%, rgba(52, 211, 153, 0.08), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 20%, rgba(99, 102, 241, 0.06), transparent 50%),
+      radial-gradient(ellipse 50% 40% at 0% 80%, rgba(16, 185, 129, 0.05), transparent 50%);
+  }
+
+  .mesh-grid {
+    @apply pointer-events-none absolute inset-0 opacity-[0.35];
+    background-size: 48px 48px;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent);
+  }
+
+  .glass {
+    @apply rounded-3xl border border-white/[0.08] bg-white/[0.04] shadow-glow backdrop-blur-xl;
+  }
+
+  .glass-tight {
+    @apply rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md;
+  }
+
+  .input-glass {
+    @apply w-full rounded-2xl border border-white/[0.1] bg-white/[0.04] py-3.5 pl-11 pr-3 text-sm text-theme-primary-text placeholder:text-zinc-500
+      transition focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/15;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-medium text-zinc-950
+      transition hover:bg-zinc-100;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-transparent px-7 py-3.5 text-sm font-medium text-zinc-200
+      transition hover:border-white/25 hover:bg-white/[0.04];
   }
 }

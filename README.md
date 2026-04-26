@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository contains a Flask-based REST API and a React frontend for a mental health chatbot.  
+This repository contains a **FastAPI** (ASGI) REST API and a React frontend for a mental health chatbot.  
 The chatbot now uses **Google Gemini** to generate empathetic, safe mental-health–focused responses.
 
 ## Technical Architecture
@@ -15,7 +15,8 @@ The chatbot now uses **Google Gemini** to generate empathetic, safe mental-healt
    - Safety: Never provides medical diagnoses; encourages contacting professionals or emergency services in crisis situations
 
 2. **Backend API**
-   - Framework: Flask
+   - Framework: **FastAPI** (run with Uvicorn locally; Gunicorn + `uvicorn.workers.UvicornWorker` in production)
+   - Interactive docs: `GET /docs` (OpenAPI) when the server is running
    - Auth: JWT-based authentication with bcrypt-hashed passwords
    - Database: MongoDB for users, chat sessions, and message history
    - Key endpoints:
